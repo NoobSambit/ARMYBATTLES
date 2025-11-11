@@ -1,0 +1,135 @@
+You are an expert MERN/Next.js engineer.
+Build a minimal MVP for a platform called **ARMY Stream Battles**.
+
+✅ STACK REQUIREMENTS
+- Next.js (latest, App Router)
+- Node.js API routes inside Next.js (`/api`)
+- MongoDB using mongoose (NO other database, NO Replit DB)
+- Frontend minimal – no fancy UI, focus on functionality
+- Socket.io for realtime leaderboard
+- Use Last.fm API for scrobble verification
+- Use Spotify Web API (client credentials flow) only to fetch playlist track list
+- Must be deployable without errors
+- No ORM other than mongoose
+- Do NOT use Prisma, PlanetScale, Replit database, Supabase, Firebase or any other DB.
+
+✅ MAIN USER FLOW
+1. User creates an account (email + password, simple auth with JWT)
+2. User connects Last.fm by giving username (store in DB)
+3. Host creates a battle:
+- Inputs: battle name, Spotify playlist link, start time, end time
+- System must fetch playlist tracks from Spotify API and store track list in DB
+4. Other users join battle
+5. When battle is running:
+- Backend checks scrobbles of all participants every 30 seconds
+- Only count plays where:
+* track name + artist matches playlist
+* timestamp fits between start & end
+6. Emit leaderboard via Socket.io to frontend
+7. When battle ends:
+- Show final leaderboard
+- Save results
+
+✅ REQUIRED API KEYS (ENV)
+- MONGO_URI
+- JWT_SECRET
+- LASTFM_API_KEY
+- SPOTIFY_CLIENT_ID
+- SPOTIFY_CLIENT_SECRET
+
+✅ DATA MODELS (mongoose)
+User:
+- _id
+- username
+- email
+- passwordHash
+- lastfmUsername
+
+Battle:
+- _id
+- host (User ID)
+- name
+- spotifyPlaylist
+- playlistTracks: [{ title, artist }]
+- startTime
+- endTime
+- participants: [UserID]
+- status: "upcoming" | "active" | "ended"
+
+StreamCount:
+- _id
+- battleId
+- userId
+- count
+
+✅ REQUIRED API ENDPOINTS
+POST /api/auth/register → create user, hash password
+POST /api/auth/login → generate JWT
+POST /api/user/lastfm → set lastfmUsername for logged user
+POST /api/battle/create
+- Parse Spotify playlist ID
+- Call Spotify API using client credentials
+- Fetch all track names + artist names
+- Save to Battle model
+
+POST /api/battle/join → add user to participants array
+
+GET /api/battle/:id/leaderboard → returns current leaderboard
+
+Background process:
+Inside Next.js API route `/api/battle/verify`
+- Runs a cron-like loop every 30 seconds (use setInterval server side)
+- For each active battle:
+→ For each participant:
+Call Last.fm API:
+GET http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=LASTFMUSERNAME&api_key=KEY&format=json
+Filter tracks:
+- timestamp >= battle.startTime
+- timestamp <= battle.endTime
+- track + artist matches playlistTracks
+Count & save in StreamCount DB
+→ Emit updates via Socket.io channel `battle-{id}`
+
+✅ REALTIME LEADERBOARD
+- Setup Socket.io server in `/pages/api/socket.js`
+- On leaderboard update, emit:
+{
+userId,
+username,
+count
+}
+
+✅ MINIMAL FRONTEND PAGES (NO FANCY UI)
+1. `/signup` → email, username, password
+2. `/login` → login form
+3. `/dashboard` → show "create battle" + "join battle"
+4. `/battle/[id]`
+- minimal text list of participants + live score updates
+
+✅ VERY IMPORTANT:
+- DO NOT use any local JSON storage or Replit DB
+- MUST use MongoDB only
+- Keep UI minimal to save tokens
+- Backend first, no useless CSS
+- Hardcode 1 request per 30 seconds for scrobble verification
+- Code should be runnable immediately after installation
+
+✅ AFTER BUILD
+- Include instructions in README.md inside project:
+* How to add env variables
+* How to run locally
+* How to deploy on Replit
+
+Start coding now and produce the full project with file structure:
+
+/app
+/pages/api
+/models
+/utils
+/socket
+/components (minimal)
+.env.example
+README.md
+package.json
+
+Make sure all files have working code, not placeholders.

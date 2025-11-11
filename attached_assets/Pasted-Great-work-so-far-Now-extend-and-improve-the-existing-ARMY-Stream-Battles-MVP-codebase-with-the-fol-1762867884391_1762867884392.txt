@@ -1,0 +1,80 @@
+Great work so far. Now extend and improve the existing ARMY Stream Battles MVP codebase with the following upgrades. Do NOT rewrite the app — modify and enhance the current code. Follow the same stack (Next.js + MongoDB + Node API + Socket.io + Last.fm + Spotify) and keep UI minimal.
+
+✅ 1. Improve Production Safety & Stability
+- Add full error handling to all API routes
+- Add validation (Joi or zod) for user inputs:
+  * register/login
+  * create battle
+  * join battle
+- Add rate limiting middleware on all POST endpoints
+- Add CORS configuration for safe cross–origin use
+- Add proper logging: each battle verification tick must log:
+  time, battleId, userId, scrobbles counted, playlist matches
+- Create a reusable MongoDB connection utility with retry logic
+
+✅ 2. Battle Engine Improvements
+- Add automatic battle lifecycle manager:
+  * If current time < start → "upcoming"
+  * During time window → "active"
+  * After end time → "ended"
+- After a battle ends:
+  * Freeze StreamCount results for that battle
+  * Do NOT keep querying Last.fm
+  * Emit a final leaderboard event
+- Add "isCheater" flag if user logs > 10 scrobbles per minute (optional cheat detection)
+- Prevent duplicate participant entries using $addToSet
+
+✅ 3. Admin Controls (Minimal)
+- Add a simple isAdmin field on User schema (default false)
+- Create endpoint: POST /api/admin/end-battle-manually
+  * admin-only
+  * sets battle to ended
+  * emits final leaderboard
+
+✅ 4. Better Playlist Parsing
+- Improve Spotify track fetcher:
+  * flatten track objects
+  * store lowercase normalized names & artists for better matching
+  * handle pagination if playlist has >100 songs
+
+✅ 5. Real-Time Leaderboard Enhancements
+- In battle page, add last updated timestamp
+- Sort leaderboard on backend before emitting
+- If user has 0 valid streams, still show them with count = 0
+
+✅ 6. Utility Scripts
+Create a script at /utils/cleanup.js:
+- removes ended battles older than 7 days
+- removes stream counts for deleted battles
+- This script can be triggered manually using a GET route /api/admin/cleanup
+
+✅ 7. Security
+- Hash JWT tokens in cookies (httpOnly, secure, sameSite)
+- Sanitize all MongoDB queries
+- Prevent ObjectId injection attacks
+
+✅ 8. Minimal Front-End Polishing
+- Add loader states: “verifying streams…”
+- Add a small “Connected to Last.fm ✓” indicator
+- On battle screen, show:
+   * battle name
+   * start and end time
+   * participants count
+
+✅ 9. README Improvements
+- Add section: “How stream verification works”
+- Add API reference for each endpoint
+- Add section for cheat prevention and rules
+
+✅ Requirements
+- DO NOT introduce new DB technology
+- DO NOT change existing routes drastically
+- DO NOT remove Socket.io
+- DO NOT replace MongoDB
+- Only enhance/extend the current codebase
+
+After implementation, reply with:
+✅ list of modified files
+✅ summary of all new features added
+✅ how to test admin endpoint
+✅ how to confirm battle lifecycle is functioning
