@@ -1,4 +1,5 @@
 import './globals.css'
+import Navbar from '@/components/Navbar'
 
 export const metadata = {
   title: 'ARMY Stream Battles',
@@ -9,7 +10,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="antialiased">
-        {children}
+        <Navbar />
+        <main className="min-h-screen">
+          {children}
+        </main>
       </body>
     </html>
   )
