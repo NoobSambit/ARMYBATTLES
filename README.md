@@ -29,7 +29,7 @@ A production-ready real-time music streaming battle platform where users compete
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14 (App Router), React, Socket.io-client
+- **Frontend**: Next.js 14 (App Router), React, Socket.io-client, Tailwind CSS 3.x
 - **Backend**: Next.js API Routes with middleware architecture
 - **Database**: MongoDB with Mongoose ODM
 - **Real-time**: Socket.io for live updates
@@ -37,6 +37,38 @@ A production-ready real-time music streaming battle platform where users compete
 - **Authentication**: JWT with bcryptjs hashing
 - **Validation**: Zod for input validation
 - **Logging**: Structured logging with context
+
+## UI Design
+
+The platform features a modern, responsive interface with a **BTS/ARMY inspired aesthetic**:
+
+### Design Theme
+- **Purple Gradients**: Beautiful purple color scheme (from-purple-600 to-purple-400) with glow effects
+- **Smooth Animations**: Hover effects, transitions, and animated live indicators
+- **Responsive Design**: Mobile-first design that works seamlessly on phones, tablets, and desktops
+- **Clean Layout**: Rounded corners, card-based design, and intuitive navigation
+
+### Reusable Components
+- **Navbar**: Responsive navigation with mobile hamburger menu and profile dropdown
+- **Hero Section**: Eye-catching landing page with call-to-action buttons
+- **BattleCard**: Displays battle information with status badges (active, upcoming, ended)
+- **Modal**: Clean modal dialogs for creating and joining battles
+- **Badge**: Status indicators with color-coded labels
+- **LoadingSpinner**: Animated loading indicator
+
+### Pages
+- **Landing Page** (`/`): Hero section with featured battles and platform features
+- **Login/Signup** (`/login`, `/signup`): Clean card-based authentication forms
+- **Battles** (`/battles`): Browse all battles with filter options
+- **Dashboard** (`/dashboard`): User dashboard with quick actions and battle management
+- **Battle Detail** (`/battle/[id]`): Live leaderboard with real-time updates and animated indicators
+
+### Tailwind CSS Configuration
+The project uses Tailwind CSS 3.x with custom theme configuration:
+- Custom purple color palette for BTS/ARMY branding
+- Extended font families and spacing
+- Responsive breakpoints for mobile, tablet, and desktop
+- Forms plugin for beautiful form inputs
 
 ## Prerequisites
 
