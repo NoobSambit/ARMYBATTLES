@@ -1,0 +1,98 @@
+You already built the full ARMY Stream Battles MVP (Next.js + MongoDB + Socket.io + Last.fm + Spotify). 
+Do NOT change backend logic or database. 
+Now upgrade the frontend UI to a modern, responsive design.
+
+✅ BEFORE CODING:
+- Read README and scan the existing project
+- Understand current pages and components
+- Keep all routes and APIs intact
+
+✅ NEW FRONTEND REQUIREMENTS
+
+1. Add Tailwind CSS to the project (clean, lightweight)
+- Configure Tailwind properly
+- Remove plain HTML styles and rebuild UI with modern components
+
+2. Global Layout + Navbar
+- Create a global layout wrapper used by all pages (except login/signup)
+- Navbar (sticky top, responsive):
+  * Logo / site name: ARMY Stream Battles
+  * Home
+  * Battles
+  * Host Battle
+  * If not logged in: Login / Signup buttons
+  * If logged in: Profile dropdown with Logout
+- Mobile menu should collapse into hamburger icon
+
+3. NEW Landing Page ("/")
+- Full-screen hero section with purple gradient background
+- Headline: “Join BTS Streaming Battles”
+- Subtext: “Compete with ARMY worldwide. Real verified streams, real winners.”
+- Two CTA buttons:
+    * Host a Battle
+    * Join a Battle
+- Show cards for:
+    - Active battles
+    - Upcoming battles
+- Each battle card styled with:
+    * name
+    * status badge (active/upcoming)
+    * start/end time
+    * join button
+
+4. Login / Signup UI Revamp
+- Centered card UI with soft shadows, rounded corners
+- Stylish inputs, clean buttons
+- Add "Continue" button with loading state
+
+5. Battle Page UI
+- Show battle details inside a styled card:
+    * Battle name
+    * Playlist
+    * Start/end time
+- Real-time leaderboard as a styled table:
+    * Rank
+    * Username
+    * Verified streams
+    * Cheat flag icon if detected
+- Add animated “Live Updating…” indicator
+
+6. Battles Listing Page ("/battles")
+- Grid or list of all battles
+- Tabs or filters:
+    * Active
+    * Upcoming
+    * Ended
+- Beautiful card layout with purple glow or soft neon theme
+
+7. Host Battle / Join Battle Modals
+- Instead of a plain form, use a modal or centered card
+- Styled buttons, hover effects, transitions
+
+8. RESPONSIVE DESIGN (MOBILE FRIENDLY)
+- Navbar collapses to hamburger
+- Cards stack vertically
+- Leaderboard scrolls horizontal on small screens
+
+9. DESIGN GUIDELINES
+- Aesthetic: BTS / ARMY inspired
+- Purple gradient backgrounds
+- Rounded corners
+- Soft shadows
+- Glow effects on buttons or headers
+- Modern fonts
+- Avoid heavy libraries, keep UI optimized
+
+10. DO NOT:
+- Do not modify existing backend logic
+- Do not change Socket.io implementation
+- Do not remove MongoDB
+- Do not rewrite pages from scratch — enhance them
+
+11. AFTER IMPLEMENTATION:
+- Update README with new UI screenshots
+- Ensure routing still works
+- Ensure login redirects correctly when user is logged in
+- Test homepage, battles page, battle detail, profile dropdown, logout
+
+Start coding the UI upgrade now.
