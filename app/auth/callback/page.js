@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
-export default function LastfmCallbackPage() {
+function CallbackInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState('');
@@ -80,5 +80,22 @@ export default function LastfmCallbackPage() {
         <p className="mt-4 text-gray-300">Completing Last.fm login...</p>
       </div>
     </div>
+  );
+}
+
+export default function LastfmCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12 bg-surface">
+          <div className="flex flex-col items-center">
+            <LoadingSpinner size="lg" />
+            <p className="mt-4 text-gray-300">Completing Last.fm login...</p>
+          </div>
+        </div>
+      }
+    >
+      <CallbackInner />
+    </Suspense>
   );
 }

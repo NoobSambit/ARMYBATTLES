@@ -11,7 +11,7 @@ let socketIO = null;
 function getSocketIO() {
   try {
     if (!socketIO) {
-      const socketModule = require('./socket');
+      const socketModule = require('../socket');
       socketIO = socketModule.getIO();
     }
     return socketIO;
