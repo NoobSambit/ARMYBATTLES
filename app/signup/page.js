@@ -1,41 +1,52 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function SignUp() {
-  const router = useRouter();
-  const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
-  });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  useEffect(() => {
+    const onMessage = (e) => {
+      if (e.origin !== window.location.origin) return;
+      if (e.data && e.data.type === 'login-complete') {
+        window.location.href = '/dashboard';
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleConnect = async () => {
     setError('');
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch('/api/auth/lastfm-start', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        credentials: 'include',
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Registration failed');
+        throw new Error(data.error || 'Failed to start Last.fm signup');
       }
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      router.push('/dashboard');
+      if (!data.authorizeUrl) {
+        throw new Error('Invalid response from Last.fm signup');
+      }
+
+      const popup = window.open(
+        data.authorizeUrl,
+        'lastfm-auth',
+        'width=520,height=700,menubar=no,toolbar=no,status=no,location=no'
+      );
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        window.location.href = data.authorizeUrl;
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -44,93 +55,56 @@ export default function SignUp() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12 bg-gradient-to-br from-purple-50 via-white to-pink-50">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12 bg-surface">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gradient mb-2">Join ARMY Battles</h1>
-          <p className="text-gray-600">Create an account to start competing</p>
+          <p className="text-gray-300">Connect your Last.fm account to start competing</p>
         </div>
 
-        <div className="card p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                Username
-              </label>
-              <input
-                id="username"
-                type="text"
-                placeholder="Your username"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                required
-                className="input-field"
-                disabled={loading}
-              />
-            </div>
+        <div className="card p-8 space-y-6">
+          <p className="text-gray-300">
+            When you connect with Last.fm we create your ARMY Battles profile automatically using your Last.fm username and avatar. No email or password required.
+          </p>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                placeholder="your@email.com"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-                className="input-field"
-                disabled={loading}
-              />
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/25 text-red-300 px-4 py-3 rounded-lg text-center">
+              {error}
             </div>
+          )}
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                required
-                minLength={6}
-                className="input-field"
-                disabled={loading}
-              />
-              <p className="mt-1 text-sm text-gray-500">Must be at least 6 characters</p>
-            </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                {error}
-              </div>
+          <button
+            onClick={handleConnect}
+            disabled={loading}
+            className="w-full btn-primary flex items-center justify-center"
+          >
+            {loading ? (
+              <>
+                <LoadingSpinner size="sm" />
+                <span className="ml-2">Connecting to Last.fm...</span>
+              </>
+            ) : (
+              'Continue with Last.fm'
             )}
+          </button>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full btn-primary flex items-center justify-center"
-            >
-              {loading ? (
-                <>
-                  <LoadingSpinner size="sm" />
-                  <span className="ml-2">Creating account...</span>
-                </>
-              ) : (
-                'Sign Up'
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-gray-600">
-              Already have an account?{' '}
-              <Link href="/login" className="text-army-purple font-semibold hover:text-army-purple-dark transition-colors">
-                Login
+          <div className="text-center text-sm text-gray-500">
+            <p>
+              Already connected before?{' '}
+              <Link href="/login" className="text-bts-pink font-semibold hover:text-bts-purple transition-colors">
+                Log in here
               </Link>
+            </p>
+            <p className="mt-3">
+              Need a Last.fm account?{' '}
+              <a
+                href="https://www.last.fm/join"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-bts-pink font-semibold hover:text-bts-purple transition-colors"
+              >
+                Create one for free
+              </a>
             </p>
           </div>
         </div>

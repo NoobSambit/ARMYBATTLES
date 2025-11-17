@@ -38,12 +38,12 @@ All backend logic is implemented as Next.js API routes under `/pages/api`. This 
 Request handling uses a middleware composition pattern with reusable functions for:
 - CORS configuration
 - Rate limiting (in-memory Map store)
-- JWT authentication validation
+- Session-based authentication validation
 - Input validation using Zod schemas
 - Admin authorization checks
 
-**Authentication**: JWT with bcryptjs  
-User authentication uses JSON Web Tokens stored on the client side. Passwords are hashed using bcryptjs with 10 salt rounds before storage.
+**Authentication**: Last.fm session tokens  
+Users authenticate by approving the app via Last.fm. The backend exchanges the Last.fm token for a session key, stores a session token in MongoDB, and issues an HTTP-only cookie / bearer token for client access. No passwords are stored.
 
 **Battle Verification Engine**: Polling-based verification  
 A background process runs every 30 seconds to:
@@ -76,8 +76,10 @@ Database connections use a cached singleton pattern to reuse connections across 
 **Data Models**:
 
 1. **User Schema**
-   - username, email, passwordHash (required)
-   - lastfmUsername (optional, required to join battles)
+   - username, lastfmUsername, displayName
+   - lastfmSessionKey (required for scrobble fetching)
+   - avatarUrl (optional)
+   - sessionToken, sessionExpiresAt (for authentication)
    - isAdmin (boolean flag for admin privileges)
 
 2. **Battle Schema**
@@ -116,13 +118,13 @@ Provides bidirectional real-time communication between server and clients. The s
 
 **Environment Variables Required**:
 - `MONGO_URI`: MongoDB connection string
-- `JWT_SECRET`: Secret key for JWT signing
 - `LASTFM_API_KEY`: Last.fm API key
+- `LASTFM_SHARED_SECRET`: Last.fm API shared secret (for token exchange)
 - `SPOTIFY_CLIENT_ID`: Spotify application client ID
 - `SPOTIFY_CLIENT_SECRET`: Spotify application client secret
 
 **Input Validation**: Zod  
-All user inputs are validated using Zod schemas before processing. Validation covers registration, login, Last.fm username updates, battle creation, battle joining, and admin actions.
+All user inputs are validated using Zod schemas before processing. Validation covers Last.fm login completion, battle creation, battle joining, and admin actions.
 
 **Rate Limiting**: In-memory implementation  
 Rate limiting uses an in-memory Map to track request counts per IP address with configurable limits and time windows. Applied to all POST endpoints to prevent abuse.

@@ -39,35 +39,34 @@ export default function BattlesPage() {
   });
 
   const tabs = [
-    { id: 'all', label: 'All Battles', icon: '🎵' },
-    { id: 'active', label: 'Active', icon: '🔴' },
-    { id: 'upcoming', label: 'Upcoming', icon: '📅' },
-    { id: 'ended', label: 'Ended', icon: '✓' },
+    { id: 'all', label: 'All Battles' },
+    { id: 'active', label: 'Active' },
+    { id: 'upcoming', label: 'Upcoming' },
+    { id: 'ended', label: 'Ended' },
   ];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gradient mb-2">All Battles</h1>
-        <p className="text-gray-600">Join the competition or spectate the action</p>
+        <h1 className="font-display text-4xl font-bold text-gradient mb-2">All Battles</h1>
+        <p className="text-gray-400">Join the competition or spectate the action</p>
       </div>
 
-      <div className="mb-8 border-b border-gray-200">
-        <nav className="flex space-x-8 overflow-x-auto">
+      <div className="mb-8 border-b border-border">
+        <nav className="flex space-x-6 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap',
+                'flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap',
                 activeTab === tab.id
-                  ? 'border-army-purple text-army-purple'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-bts-purple text-white'
+                  : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-border'
               )}
             >
-              <span>{tab.icon}</span>
               <span>{tab.label}</span>
-              <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">
+              <span className="bg-panel border border-border text-gray-300 px-2 py-0.5 rounded-full text-xs">
                 {tab.id === 'all' ? battles.length : battles.filter(b => b.status === tab.id).length}
               </span>
             </button>
@@ -86,9 +85,9 @@ export default function BattlesPage() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <p className="text-gray-600 text-lg">No battles found in this category</p>
-          <p className="text-gray-500 mt-2">Check back soon or create your own!</p>
+        <div className="text-center py-12 bg-panel border border-border rounded-lg">
+          <p className="text-gray-300 text-lg">No battles found in this category</p>
+          <p className="text-gray-400 mt-2">Check back soon or create your own!</p>
         </div>
       )}
     </div>

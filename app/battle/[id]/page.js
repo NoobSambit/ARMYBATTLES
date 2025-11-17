@@ -98,11 +98,11 @@ export default function BattlePage({ params }) {
   if (error) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+        <div className="bg-red-500/10 border border-red-500/25 text-red-300 px-4 py-3 rounded-lg mb-4">
           {error}
         </div>
         <Link href="/dashboard">
-          <button className="btn-secondary">← Back to Dashboard</button>
+          <button className="btn-secondary">Back to Dashboard</button>
         </Link>
       </div>
     );
@@ -119,7 +119,7 @@ export default function BattlePage({ params }) {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <Link href="/dashboard">
-        <button className="btn-secondary mb-6">← Back to Dashboard</button>
+        <button className="btn-secondary mb-6">Back to Dashboard</button>
       </Link>
 
       <div className="mb-8">
@@ -132,108 +132,100 @@ export default function BattlePage({ params }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="card p-6">
           <div className="flex items-center mb-2">
-            <svg className="w-5 h-5 mr-2 text-army-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 mr-2 text-bts-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <h3 className="text-sm font-medium text-gray-500">Start Time</h3>
+            <h3 className="text-sm font-medium text-gray-400">Start Time</h3>
           </div>
-          <p className="text-lg font-semibold text-gray-900">{formatDate(battle.startTime)}</p>
+          <p className="text-lg font-semibold text-gray-100">{formatDate(battle.startTime)}</p>
         </div>
 
         <div className="card p-6">
           <div className="flex items-center mb-2">
-            <svg className="w-5 h-5 mr-2 text-army-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 mr-2 text-bts-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <h3 className="text-sm font-medium text-gray-500">End Time</h3>
+            <h3 className="text-sm font-medium text-gray-400">End Time</h3>
           </div>
-          <p className="text-lg font-semibold text-gray-900">{formatDate(battle.endTime)}</p>
+          <p className="text-lg font-semibold text-gray-100">{formatDate(battle.endTime)}</p>
         </div>
 
         <div className="card p-6">
           <div className="flex items-center mb-2">
-            <svg className="w-5 h-5 mr-2 text-army-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 mr-2 text-bts-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
-            <h3 className="text-sm font-medium text-gray-500">Participants</h3>
+            <h3 className="text-sm font-medium text-gray-400">Participants</h3>
           </div>
-          <p className="text-lg font-semibold text-gray-900">{battle.participantCount}</p>
+          <p className="text-lg font-semibold text-gray-100">{battle.participantCount}</p>
         </div>
       </div>
 
       <div className="card p-6 mb-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Live Leaderboard</h2>
+          <h2 className="text-2xl font-bold text-gray-100">Live Leaderboard</h2>
           {battle.status === 'active' && (
-            <div className="flex items-center space-x-2">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-              </span>
-              <span className="text-sm text-gray-600">Live Updating...</span>
+            <div className="flex items-center gap-2">
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-green-400"></span>
+              <span className="text-sm text-gray-400">Live</span>
             </div>
           )}
         </div>
 
         {leaderboard.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg">
-            <p className="text-gray-600 text-lg">No scores yet</p>
-            <p className="text-gray-500 mt-2">Start listening to playlist tracks to see scores!</p>
+          <div className="text-center py-12 bg-panel border border-border rounded-lg">
+            <p className="text-gray-300 text-lg">No scores yet</p>
+            <p className="text-gray-400 mt-2">Start listening to playlist tracks to see scores!</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-gradient-purple text-white">
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Rank</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Username</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold">Streams</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold">Status</th>
+                <tr className="bg-panel border-b border-border text-gray-300">
+                  <th className="px-6 py-4 text-left text-sm font-medium">Rank</th>
+                  <th className="px-6 py-4 text-left text-sm font-medium">Username</th>
+                  <th className="px-6 py-4 text-right text-sm font-medium">Streams</th>
+                  <th className="px-6 py-4 text-center text-sm font-medium">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-border">
                 {leaderboard.map((entry, index) => (
                   <tr
                     key={entry.userId}
-                    className={`transition-colors ${
-                      entry.isCheater ? 'bg-yellow-50' : 'hover:bg-gray-50'
-                    } ${index === 0 && !entry.isCheater ? 'bg-purple-50' : ''}`}
+                    className={`transition-colors ${entry.isCheater ? 'bg-red-500/5' : ''} hover:bg-panel/70`}
                   >
                     <td className="px-6 py-4">
                       <span className={`text-2xl font-bold ${
-                        index === 0 ? 'text-army-purple' : 
-                        index === 1 ? 'text-gray-600' : 
-                        index === 2 ? 'text-gray-500' : 'text-gray-400'
-                      }`}>
-                        {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}`}
-                      </span>
+                        index === 0 ? 'text-bts-purple' : 
+                        index === 1 ? 'text-gray-300' : 
+                        index === 2 ? 'text-gray-400' : 'text-gray-500'
+                      }`}>{index + 1}</span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gradient-purple rounded-full flex items-center justify-center text-white font-semibold mr-3">
+                        <div className="w-10 h-10 bg-bts-deep rounded-full flex items-center justify-center text-white font-semibold mr-3">
                           {entry.username.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-900">{entry.username}</p>
+                          <p className="font-semibold text-gray-100">{entry.username}</p>
                           {entry.isCheater && (
-                            <p className="text-xs text-yellow-700 flex items-center mt-1">
-                              <span className="mr-1">⚠️</span>
-                              Suspicious activity detected
-                            </p>
+                            <p className="text-xs text-yellow-300 mt-1">Suspicious activity detected</p>
                           )}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <span className="text-2xl font-bold text-army-purple">{entry.count}</span>
+                      <span className="text-2xl font-bold text-bts-purple">{entry.count}</span>
                     </td>
                     <td className="px-6 py-4 text-center">
                       {entry.isCheater ? (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500/15 text-yellow-300 border border-yellow-500/20">
                           Flagged
                         </span>
                       ) : (
-                        <span className="text-green-500 text-xl">✓</span>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/15 text-green-300 border border-green-500/20">
+                          OK
+                        </span>
                       )}
                     </td>
                   </tr>
@@ -244,31 +236,22 @@ export default function BattlePage({ params }) {
         )}
 
         {lastUpdated && (
-          <p className="mt-4 text-sm text-gray-500 text-center">
+          <p className="mt-4 text-sm text-gray-400 text-center">
             Last updated: {formatDate(lastUpdated)}
           </p>
         )}
       </div>
 
-      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-        <p className="text-sm text-purple-800 flex items-center">
+      <div className="bg-panel border border-border rounded-lg p-4">
+        <p className="text-sm text-gray-300">
           {battle.status === 'active' && (
-            <>
-              <span className="mr-2">🔴</span>
-              Leaderboard updates automatically every 30 seconds via real-time Socket.io connection
-            </>
+            <>Leaderboard updates automatically every 30 seconds via real-time Socket.io connection.</>
           )}
           {battle.status === 'ended' && (
-            <>
-              <span className="mr-2">✓</span>
-              Battle has ended. Final results are shown above.
-            </>
+            <>Battle has ended. Final results are shown above.</>
           )}
           {battle.status === 'upcoming' && (
-            <>
-              <span className="mr-2">📅</span>
-              Battle hasn't started yet. Check back at the start time!
-            </>
+            <>Battle hasn't started yet. Check back at the start time.</>
           )}
         </p>
       </div>

@@ -42,7 +42,7 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <section className="mb-16">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="section-title">🔴 Active Battles</h2>
+            <h2 className="section-title">Active Battles</h2>
           </div>
           
           {loading ? (
@@ -54,16 +54,16 @@ export default function Home() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 bg-gray-50 rounded-lg">
-              <p className="text-gray-600 text-lg">No active battles at the moment</p>
-              <p className="text-gray-500 mt-2">Check back soon or create your own!</p>
+            <div className="text-center py-12 bg-panel border border-border rounded-lg">
+              <p className="text-gray-300 text-lg">No active battles at the moment</p>
+              <p className="text-gray-400 mt-2">Check back soon or create your own!</p>
             </div>
           )}
         </section>
 
         <section>
           <div className="flex items-center justify-between mb-8">
-            <h2 className="section-title">📅 Upcoming Battles</h2>
+            <h2 className="section-title">Upcoming Battles</h2>
           </div>
           
           {loading ? (
@@ -75,9 +75,9 @@ export default function Home() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 bg-gray-50 rounded-lg">
-              <p className="text-gray-600 text-lg">No upcoming battles</p>
-              <p className="text-gray-500 mt-2">Be the first to create one!</p>
+            <div className="text-center py-12 bg-panel border border-border rounded-lg">
+              <p className="text-gray-300 text-lg">No upcoming battles</p>
+              <p className="text-gray-400 mt-2">Be the first to create one!</p>
             </div>
           )}
         </section>

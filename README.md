@@ -1,12 +1,12 @@
-# ARMY Stream Battles
+# ARMYBATTLES
 
 A production-ready real-time music streaming battle platform where users compete by listening to Spotify playlists. The platform tracks plays through Last.fm scrobbles and displays live leaderboards with automatic cheat detection and battle lifecycle management.
 
 ## Features
 
 ### Core Features
-- **User Authentication**: Secure JWT-based authentication with bcrypt password hashing
-- **Last.fm Integration**: Connect your Last.fm account to track scrobbles automatically
+- **User Authentication**: Password-free Last.fm login with secure session tokens
+- **Last.fm Integration**: Automatically ingest scrobbles for connected Last.fm accounts
 - **Battle Creation**: Create battles with Spotify playlists and custom time windows
 - **Real-time Leaderboards**: Live updates via Socket.io every 30 seconds
 - **Scrobble Verification**: Automatic verification of plays matching playlist tracks with normalized matching
@@ -34,7 +34,7 @@ A production-ready real-time music streaming battle platform where users compete
 - **Database**: MongoDB with Mongoose ODM
 - **Real-time**: Socket.io for live updates
 - **APIs**: Spotify Web API (client credentials), Last.fm API
-- **Authentication**: JWT with bcryptjs hashing
+- **Authentication**: Stateless Last.fm session tokens with MongoDB session storage
 - **Validation**: Zod for input validation
 - **Logging**: Structured logging with context
 
@@ -43,10 +43,10 @@ A production-ready real-time music streaming battle platform where users compete
 The platform features a modern, responsive interface with a **BTS/ARMY inspired aesthetic**:
 
 ### Design Theme
-- **Purple Gradients**: Beautiful purple color scheme (from-purple-600 to-purple-400) with glow effects
-- **Smooth Animations**: Hover effects, transitions, and animated live indicators
-- **Responsive Design**: Mobile-first design that works seamlessly on phones, tablets, and desktops
-- **Clean Layout**: Rounded corners, card-based design, and intuitive navigation
+- **BTS-Inspired Dark Mode**: Luxurious dark surfaces (`surface`, `panel`) with BTS accents (`bts.purple`, `bts.pink`, `bts.deep`)
+- **Premium Typography**: Space Grotesk for display headings and Inter for body copy
+- **Minimal Motion**: Subtle transitions; no heavy animations or emoji noise
+- **Mobile-First**: Clean, readable layout optimized for small screens first
 
 ### Reusable Components
 - **Navbar**: Responsive navigation with mobile hamburger menu and profile dropdown
@@ -88,10 +88,11 @@ Create a `.env` file in the root directory with the following variables:
 
 ```env
 MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/army-stream-battles?retryWrites=true&w=majority
-JWT_SECRET=your-super-secret-jwt-key-change-this
 LASTFM_API_KEY=your-lastfm-api-key
+LASTFM_SHARED_SECRET=your-lastfm-shared-secret
 SPOTIFY_CLIENT_ID=your-spotify-client-id
 SPOTIFY_CLIENT_SECRET=your-spotify-client-secret
+# Optional
 LOG_LEVEL=INFO
 ```
 
@@ -158,14 +159,13 @@ The application will run on http://localhost:5000
 
 ## How to Use
 
-1. **Sign Up**: Create an account with email and password
-2. **Connect Last.fm**: Set your Last.fm username in your profile (you'll see a "✓ Connected" indicator)
-3. **Create a Battle**: 
+1. **Sign Up / Login**: Click "Continue with Last.fm" and approve access. Your profile is created automatically.
+2. **Create a Battle**: 
    - Enter battle name
    - Paste a Spotify playlist URL (supports playlists with 100+ songs)
    - Set start and end times
-4. **Join Battles**: Browse available battles and join (requires Last.fm connection)
-5. **Listen and Compete**: 
+3. **Join Battles**: Browse available battles and join (requires you to have connected Last.fm, which happens during login)
+4. **Listen and Compete**: 
    - Listen to tracks from the playlist on any platform (Spotify, Apple Music, YouTube Music, etc.)
    - Make sure you're scrobbling to Last.fm
    - Watch the live leaderboard update every 30 seconds
@@ -242,16 +242,17 @@ Every 30 seconds, the system performs the following steps:
     cleanup.js            # Data cleanup endpoint
     end-battle-manually.js # Manual battle end
   /auth/                  # Authentication endpoints
-    register.js           # User registration
-    login.js              # User login
+    lastfm-start.js       # Initiate Last.fm login flow
+    lastfm-complete.js    # Complete Last.fm login and create session
+    logout.js             # Destroy current session
+    me.js                 # Retrieve current user profile
   /battle/                # Battle management
     create.js             # Create battle
     join.js               # Join battle
     list.js               # List battles
     verify.js             # Verification process
     /[id]/leaderboard.js  # Get leaderboard
-  /user/                  # User management
-    lastfm.js             # Set Last.fm username
+  /user/                  # User management (deprecated endpoints)
   socket.js               # Socket.io server
 /models                   # Mongoose schemas
   User.js                 # User model (with isAdmin)
@@ -261,7 +262,7 @@ Every 30 seconds, the system performs the following steps:
   middleware.js           # Reusable middleware (auth, validation, rate limiting)
   schemas.js              # Zod validation schemas
 /utils                    # Utility functions
-  auth.js                 # JWT utilities
+  auth.js                 # Session + cookie utilities
   db.js                   # MongoDB connection with retry logic
   spotify.js              # Spotify API integration with normalization
   lastfm.js               # Last.fm API integration
@@ -274,73 +275,76 @@ Every 30 seconds, the system performs the following steps:
 
 ### Authentication Endpoints
 
-#### POST /api/auth/register
-Create a new user account.
+#### POST /api/auth/lastfm-start
+Initiate the Last.fm OAuth handshake. Returns the Last.fm authorize URL and sets a short-lived request token cookie.
+
+**Response:**
+```json
+{
+  "authorizeUrl": "https://www.last.fm/api/auth/?api_key=...&token=..."
+}
+```
+
+**Rate Limit:** 10 requests per minute
+
+#### POST /api/auth/lastfm-complete
+Exchange the Last.fm token (returned to `/auth/callback`) for a session, create/update the user, and issue a session token.
 
 **Request:**
 ```json
 {
-  "username": "string (3-30 chars)",
-  "email": "string (valid email)",
-  "password": "string (min 6 chars)"
+  "token": "string"
 }
 ```
 
 **Response:**
 ```json
 {
-  "message": "User created successfully",
-  "token": "JWT token",
+  "message": "Login successful",
+  "token": "session_token",
   "user": {
     "id": "user_id",
-    "username": "username",
-    "email": "email",
-    "lastfmUsername": null,
+    "username": "lastfm_username",
+    "displayName": "display name or null",
+    "lastfmUsername": "lastfm_username",
+    "avatarUrl": "https://...",
     "isAdmin": false
   }
 }
 ```
 
-**Rate Limit:** 5 requests per minute
-
-#### POST /api/auth/login
-Login to existing account.
-
-**Request:**
-```json
-{
-  "email": "string",
-  "password": "string"
-}
-```
-
-**Response:** Same as register
-
 **Rate Limit:** 10 requests per minute
 
-### User Endpoints
-
-#### POST /api/user/lastfm
-Set or update Last.fm username (requires authentication).
+#### POST /api/auth/logout
+Clear the active session for the authenticated user.
 
 **Headers:** `Authorization: Bearer {token}`
-
-**Request:**
-```json
-{
-  "lastfmUsername": "string (1-50 chars)"
-}
-```
 
 **Response:**
 ```json
 {
-  "message": "Last.fm username updated successfully",
-  "user": { ...user object }
+  "message": "Logged out successfully"
 }
 ```
 
-**Rate Limit:** 10 requests per minute
+#### GET /api/auth/me
+Fetch the currently authenticated user's profile.
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Response:**
+```json
+{
+  "user": {
+    "id": "user_id",
+    "username": "lastfm_username",
+    "displayName": "display name or null",
+    "lastfmUsername": "lastfm_username",
+    "avatarUrl": "https://...",
+    "isAdmin": false
+  }
+}
+```
 
 ### Battle Endpoints
 
@@ -514,7 +518,7 @@ Clean up battles older than 7 days (requires admin authentication).
 
 Admin users must be created manually in the database. To create an admin user:
 
-1. **Register a normal user** through the signup page
+1. **Log in via Last.fm** to create the base user account
 2. **Access your MongoDB database** (via MongoDB Compass or Atlas)
 3. **Find the user** in the `users` collection
 4. **Update the user document:**
@@ -524,14 +528,14 @@ Admin users must be created manually in the database. To create an admin user:
      { $set: { isAdmin: true } }
    )
    ```
-5. **Login again** to get a new JWT token with admin privileges
+5. **Log in again** via Last.fm so the new session token includes admin privileges
 
 ### Testing Admin Endpoints
 
 **Using curl:**
 ```bash
-# Get admin token by logging in
-TOKEN="your_admin_jwt_token"
+# Get admin token by logging in through the UI, then copy the token from localStorage
+TOKEN="your_admin_session_token"
 
 # Manually end a battle
 curl -X POST http://localhost:5000/api/admin/end-battle-manually \
@@ -546,7 +550,7 @@ curl -X GET http://localhost:5000/api/admin/cleanup \
 
 **Using JavaScript:**
 ```javascript
-const token = localStorage.getItem('token'); // Admin token
+const token = localStorage.getItem('token'); // Admin session token
 
 // End battle manually
 await fetch('/api/admin/end-battle-manually', {

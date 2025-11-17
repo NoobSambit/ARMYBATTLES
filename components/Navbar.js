@@ -17,13 +17,48 @@ export default function Navbar() {
     if (userData) {
       setUser(JSON.parse(userData));
     }
+
+    const handleStorage = (event) => {
+      if (event.key === 'user') {
+        if (event.newValue) {
+          setUser(JSON.parse(event.newValue));
+        } else {
+          setUser(null);
+        }
+      }
+      if (event.key === 'token' && !event.newValue) {
+        setUser(null);
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+    };
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    router.push('/login');
+  const handleLogout = async () => {
+    const token = localStorage.getItem('token');
+
+    try {
+      if (token) {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: 'include',
+        });
+      }
+    } catch (err) {
+      console.error('Failed to log out:', err);
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+      router.push('/login');
+    }
   };
 
   const isActive = (path) => pathname === path;
@@ -33,12 +68,12 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="bg-white shadow-md sticky top-0 z-50">
+    <nav className="sticky top-0 z-50 bg-panel/80 backdrop-blur supports-[backdrop-filter]:bg-panel/60 border-b border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
-              <span className="text-2xl font-bold text-gradient">ARMY Stream Battles</span>
+              <span className="font-display tracking-tight text-2xl font-bold text-white">ARMYBATTLES</span>
             </Link>
           </div>
 
@@ -46,8 +81,8 @@ export default function Navbar() {
             <Link
               href="/"
               className={cn(
-                'text-gray-700 hover:text-army-purple transition-colors',
-                isActive('/') && 'text-army-purple font-semibold'
+                'text-gray-300 hover:text-bts-pink transition-colors',
+                isActive('/') && 'text-white font-semibold'
               )}
             >
               Home
@@ -55,8 +90,8 @@ export default function Navbar() {
             <Link
               href="/battles"
               className={cn(
-                'text-gray-700 hover:text-army-purple transition-colors',
-                isActive('/battles') && 'text-army-purple font-semibold'
+                'text-gray-300 hover:text-bts-pink transition-colors',
+                isActive('/battles') && 'text-white font-semibold'
               )}
             >
               Battles
@@ -65,8 +100,8 @@ export default function Navbar() {
               <Link
                 href="/dashboard"
                 className={cn(
-                  'text-gray-700 hover:text-army-purple transition-colors',
-                  isActive('/dashboard') && 'text-army-purple font-semibold'
+                  'text-gray-300 hover:text-bts-pink transition-colors',
+                  isActive('/dashboard') && 'text-white font-semibold'
                 )}
               >
                 Dashboard
@@ -76,7 +111,7 @@ export default function Navbar() {
             {!user ? (
               <div className="flex items-center space-x-4">
                 <Link href="/login">
-                  <button className="px-4 py-2 text-army-purple hover:text-army-purple-dark transition-colors">
+                  <button className="btn-secondary px-4 py-2">
                     Login
                   </button>
                 </Link>
@@ -88,12 +123,12 @@ export default function Navbar() {
               <div className="relative">
                 <button
                   onClick={() => setShowDropdown(!showDropdown)}
-                  className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-panel border border-transparent hover:border-border transition-colors"
                 >
-                  <div className="w-8 h-8 bg-gradient-purple rounded-full flex items-center justify-center text-white font-semibold">
+                  <div className="w-8 h-8 bg-bts-deep rounded-full flex items-center justify-center text-white font-semibold">
                     {user.username.charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-gray-700">{user.username}</span>
+                  <span className="text-gray-200">{user.displayName || user.username}</span>
                   <svg
                     className={cn(
                       'w-4 h-4 transition-transform',
@@ -108,14 +143,14 @@ export default function Navbar() {
                 </button>
 
                 {showDropdown && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 border">
-                    <div className="px-4 py-2 border-b">
-                      <p className="text-sm text-gray-600">Signed in as</p>
-                      <p className="text-sm font-semibold text-gray-900">{user.email}</p>
+                  <div className="absolute right-0 mt-2 w-56 bg-panel rounded-lg shadow-lg py-2 border border-border">
+                    <div className="px-4 py-2 border-b border-border">
+                      <p className="text-xs text-muted">Signed in as</p>
+                      <p className="text-sm font-semibold text-gray-100">{user.username}</p>
                     </div>
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-panel/70 transition-colors"
                     >
                       Logout
                     </button>
@@ -128,7 +163,7 @@ export default function Navbar() {
           <div className="md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="text-gray-700 hover:text-army-purple focus:outline-none"
+              className="text-gray-300 hover:text-bts-pink focus:outline-none"
             >
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 {isOpen ? (
@@ -143,13 +178,13 @@ export default function Navbar() {
       </div>
 
       {isOpen && (
-        <div className="md:hidden border-t">
+        <div className="md:hidden border-t border-border bg-panel">
           <div className="px-2 pt-2 pb-3 space-y-1">
             <Link
               href="/"
               className={cn(
                 'block px-3 py-2 rounded-md text-base font-medium',
-                isActive('/') ? 'bg-army-purple text-white' : 'text-gray-700 hover:bg-gray-100'
+                isActive('/') ? 'bg-bts-deep text-white' : 'text-gray-300 hover:bg-panel/70'
               )}
               onClick={() => setIsOpen(false)}
             >
@@ -159,7 +194,7 @@ export default function Navbar() {
               href="/battles"
               className={cn(
                 'block px-3 py-2 rounded-md text-base font-medium',
-                isActive('/battles') ? 'bg-army-purple text-white' : 'text-gray-700 hover:bg-gray-100'
+                isActive('/battles') ? 'bg-bts-deep text-white' : 'text-gray-300 hover:bg-panel/70'
               )}
               onClick={() => setIsOpen(false)}
             >
@@ -170,7 +205,7 @@ export default function Navbar() {
                 href="/dashboard"
                 className={cn(
                   'block px-3 py-2 rounded-md text-base font-medium',
-                  isActive('/dashboard') ? 'bg-army-purple text-white' : 'text-gray-700 hover:bg-gray-100'
+                  isActive('/dashboard') ? 'bg-bts-deep text-white' : 'text-gray-300 hover:bg-panel/70'
                 )}
                 onClick={() => setIsOpen(false)}
               >
@@ -181,14 +216,14 @@ export default function Navbar() {
               <>
                 <Link
                   href="/login"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-panel/70"
                   onClick={() => setIsOpen(false)}
                 >
                   Login
                 </Link>
                 <Link
                   href="/signup"
-                  className="block px-3 py-2 rounded-md text-base font-medium bg-army-purple text-white"
+                  className="block px-3 py-2 rounded-md text-base font-medium bg-bts-deep text-white"
                   onClick={() => setIsOpen(false)}
                 >
                   Sign Up
@@ -197,10 +232,10 @@ export default function Navbar() {
             ) : (
               <button
                 onClick={() => {
-                  handleLogout();
+                  handleLogout().catch(() => {});
                   setIsOpen(false);
                 }}
-                className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-50"
+                className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-red-400 hover:bg-panel/70"
               >
                 Logout
               </button>

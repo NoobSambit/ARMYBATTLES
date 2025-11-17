@@ -13,8 +13,6 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [battles, setBattles] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [showLastfmForm, setShowLastfmForm] = useState(false);
-  const [lastfmUsername, setLastfmUsername] = useState('');
   const [battleForm, setBattleForm] = useState({
     name: '',
     spotifyPlaylist: '',
@@ -23,22 +21,27 @@ export default function Dashboard() {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [creatingBattle, setCreatingBattle] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
-    
+
     if (!token) {
       router.push('/login');
       return;
     }
 
     if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-      setLastfmUsername(parsedUser.lastfmUsername || '');
+      try {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+      } catch (err) {
+        localStorage.removeItem('user');
+      }
     }
 
+    fetchUser();
     fetchBattles();
     startVerification();
   }, [router]);
@@ -48,6 +51,34 @@ export default function Dashboard() {
       await fetch('/api/battle/verify', { method: 'POST' });
     } catch (err) {
       console.error('Failed to start verification:', err);
+    }
+  };
+
+  const fetchUser = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.status === 401) {
+        await handleLogout(true);
+        return;
+      }
+
+      const data = await res.json();
+      if (res.ok && data.user) {
+        setUser(data.user);
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
+    } catch (err) {
+      console.error('Failed to load user profile:', err);
     }
   };
 
@@ -63,40 +94,26 @@ export default function Dashboard() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    router.push('/login');
-  };
-
-  const handleLastfmSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
+  const handleLogout = async (silent = false) => {
+    const token = localStorage.getItem('token');
 
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/user/lastfm', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ lastfmUsername }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to update Last.fm username');
+      if (token) {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
       }
-
-      localStorage.setItem('user', JSON.stringify(data.user));
-      setUser(data.user);
-      setSuccess('Last.fm username updated successfully!');
-      setShowLastfmForm(false);
     } catch (err) {
-      setError(err.message);
+      if (!silent) {
+        console.error('Failed to log out:', err);
+      }
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      router.push('/login');
     }
   };
 
@@ -104,6 +121,8 @@ export default function Dashboard() {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    setCreatingBattle(true);
 
     try {
       const token = localStorage.getItem('token');
@@ -128,6 +147,8 @@ export default function Dashboard() {
       fetchBattles();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setCreatingBattle(false);
     }
   };
 
@@ -164,8 +185,6 @@ export default function Dashboard() {
     status: getBattleStatus(battle),
   }));
 
-  const [loading, setLoading] = useState(false);
-
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -177,80 +196,73 @@ export default function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gradient mb-2">Dashboard</h1>
-        <p className="text-gray-600">Manage your battles and profile</p>
+        <h1 className="font-display text-4xl font-bold text-gradient mb-2">Dashboard</h1>
+        <p className="text-gray-400">Manage your battles and profile</p>
       </div>
 
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="mb-6 bg-red-500/10 border border-red-500/25 text-red-300 px-4 py-3 rounded-lg">
           {error}
         </div>
       )}
       {success && (
-        <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+        <div className="mb-6 bg-green-500/10 border border-green-500/25 text-green-300 px-4 py-3 rounded-lg">
           {success}
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Profile</h3>
+          <h3 className="text-lg font-semibold text-gray-100 mb-4">Profile</h3>
           <div className="space-y-3">
             <div>
-              <p className="text-sm text-gray-500">Username</p>
-              <p className="font-medium text-gray-900">{user.username}</p>
+              <p className="text-sm text-gray-400">Username</p>
+              <p className="font-medium text-gray-100">{user.username}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Email</p>
-              <p className="font-medium text-gray-900">{user.email}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Last.fm</p>
+              <p className="text-sm text-gray-400">Last.fm</p>
               {user.lastfmUsername ? (
-                <p className="font-medium text-green-600 flex items-center">
-                  <span className="mr-2">✓</span>
-                  {user.lastfmUsername}
-                </p>
+                <p className="font-medium text-green-300">{user.lastfmUsername}</p>
               ) : (
-                <p className="font-medium text-orange-500">Not connected</p>
+                <p className="font-medium text-orange-300">Not connected</p>
               )}
             </div>
-            <button
-              onClick={() => setShowLastfmForm(true)}
-              className="btn-secondary w-full mt-4"
-            >
-              {user.lastfmUsername ? 'Update Last.fm' : 'Connect Last.fm'}
-            </button>
           </div>
         </div>
 
         <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+          <h3 className="text-lg font-semibold text-gray-100 mb-4">Quick Actions</h3>
           <div className="space-y-3">
             <button
               onClick={() => setShowCreateForm(true)}
               className="btn-primary w-full"
             >
-              🎵 Create New Battle
+              Create New Battle
             </button>
             <Link href="/battles">
               <button className="btn-secondary w-full">
-                📋 Browse All Battles
+                Browse All Battles
               </button>
             </Link>
+            <button
+              onClick={() => handleLogout()}
+              className="btn-outline w-full"
+            >
+              Logout
+            </button>
           </div>
         </div>
 
         <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Stats</h3>
+          <h3 className="text-lg font-semibold text-gray-100 mb-4">Stats</h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">Total Battles</span>
-              <span className="font-bold text-2xl text-army-purple">{battles.length}</span>
+              <span className="text-sm text-gray-400">Total Battles</span>
+              <span className="font-bold text-2xl text-bts-purple">{battles.length}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">Active Now</span>
-              <span className="font-bold text-2xl text-green-600">
+              <span className="text-sm text-gray-400">Active Now</span>
+              <span className="font-bold text-2xl text-green-300">
                 {battlesWithStatus.filter(b => b.status === 'active').length}
               </span>
             </div>
@@ -261,9 +273,9 @@ export default function Dashboard() {
       <div className="mb-8">
         <h2 className="section-title">Your Battles</h2>
         {battles.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg">
-            <p className="text-gray-600 text-lg">No battles available</p>
-            <p className="text-gray-500 mt-2">Create your first battle to get started!</p>
+          <div className="text-center py-12 bg-panel border border-border rounded-lg">
+            <p className="text-gray-300 text-lg">No battles available</p>
+            <p className="text-gray-400 mt-2">Create your first battle to get started!</p>
             <button
               onClick={() => setShowCreateForm(true)}
               className="btn-primary mt-4"
@@ -281,46 +293,6 @@ export default function Dashboard() {
       </div>
 
       <Modal
-        isOpen={showLastfmForm}
-        onClose={() => {
-          setShowLastfmForm(false);
-          setError('');
-        }}
-        title="Connect Last.fm Account"
-        size="sm"
-      >
-        <form onSubmit={handleLastfmSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Last.fm Username
-            </label>
-            <input
-              type="text"
-              placeholder="Enter your Last.fm username"
-              value={lastfmUsername}
-              onChange={(e) => setLastfmUsername(e.target.value)}
-              required
-              className="input-field"
-            />
-            <p className="mt-2 text-sm text-gray-500">
-              Don't have a Last.fm account?{' '}
-              <a
-                href="https://www.last.fm/join"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-army-purple hover:underline"
-              >
-                Create one here
-              </a>
-            </p>
-          </div>
-          <button type="submit" className="btn-primary w-full">
-            Save Username
-          </button>
-        </form>
-      </Modal>
-
-      <Modal
         isOpen={showCreateForm}
         onClose={() => {
           setShowCreateForm(false);
@@ -332,7 +304,7 @@ export default function Dashboard() {
       >
         <form onSubmit={handleBattleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               Battle Name
             </label>
             <input
@@ -346,7 +318,7 @@ export default function Dashboard() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               Spotify Playlist URL or ID
             </label>
             <input
@@ -361,7 +333,7 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Start Time
               </label>
               <input
@@ -374,7 +346,7 @@ export default function Dashboard() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 End Time
               </label>
               <input
@@ -387,8 +359,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <button type="submit" disabled={loading} className="btn-primary w-full">
-            {loading ? 'Creating...' : 'Create Battle'}
+          <button type="submit" disabled={creatingBattle} className="btn-primary w-full">
+            {creatingBattle ? 'Creating...' : 'Create Battle'}
           </button>
         </form>
       </Modal>

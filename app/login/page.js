@@ -1,40 +1,33 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function Login() {
-  const router = useRouter();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleLogin = async () => {
     setError('');
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch('/api/auth/lastfm-start', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        credentials: 'include',
       });
-
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Login failed');
+        throw new Error(data.error || 'Failed to start Last.fm login');
       }
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      router.push('/dashboard');
+      if (!data.authorizeUrl) {
+        throw new Error('Invalid response from Last.fm login');
+      }
+
+      window.location.href = data.authorizeUrl;
     } catch (err) {
       setError(err.message);
     } finally {
@@ -43,74 +36,55 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12 bg-gradient-to-br from-purple-50 via-white to-pink-50">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12 bg-surface">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gradient mb-2">Welcome Back!</h1>
-          <p className="text-gray-600">Log in to join the streaming battles</p>
+          <h1 className="text-4xl font-bold text-gradient mb-2">Welcome Back</h1>
+          <p className="text-gray-300">Log in to join the streaming battles</p>
         </div>
 
-        <div className="card p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                placeholder="your@email.com"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-                className="input-field"
-                disabled={loading}
-              />
-            </div>
+        <div className="card p-8 space-y-6">
+          <p className="text-gray-300 text-center">
+            We use your Last.fm account to identify you and track your scrobbles. No passwords to remember—just connect and start competing.
+          </p>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                required
-                className="input-field"
-                disabled={loading}
-              />
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/25 text-red-300 px-4 py-3 rounded-lg text-center">
+              {error}
             </div>
+          )}
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                {error}
-              </div>
+          <button
+            onClick={handleLogin}
+            disabled={loading}
+            className="w-full btn-primary flex items-center justify-center"
+          >
+            {loading ? (
+              <>
+                <LoadingSpinner size="sm" />
+                <span className="ml-2">Connecting to Last.fm...</span>
+              </>
+            ) : (
+              'Continue with Last.fm'
             )}
+          </button>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full btn-primary flex items-center justify-center"
-            >
-              {loading ? (
-                <>
-                  <LoadingSpinner size="sm" />
-                  <span className="ml-2">Logging in...</span>
-                </>
-              ) : (
-                'Login'
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-gray-600">
-              Don't have an account?{' '}
-              <Link href="/signup" className="text-army-purple font-semibold hover:text-army-purple-dark transition-colors">
-                Sign Up
+          <div className="text-center text-sm text-gray-500">
+            <p>
+              Need a Last.fm account?{' '}
+              <a
+                href="https://www.last.fm/join"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-bts-pink font-semibold hover:text-bts-purple transition-colors"
+              >
+                Create one for free
+              </a>
+            </p>
+            <p className="mt-3">
+              Looking to create an account?{' '}
+              <Link href="/signup" className="text-bts-pink font-semibold hover:text-bts-purple transition-colors">
+                Go to Sign Up
               </Link>
             </p>
           </div>

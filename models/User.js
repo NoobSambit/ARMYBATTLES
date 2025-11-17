@@ -7,21 +7,33 @@ const UserSchema = new mongoose.Schema({
     unique: true,
     trim: true
   },
-  email: {
+  lastfmUsername: {
     type: String,
     required: true,
     unique: true,
-    trim: true,
-    lowercase: true
+    trim: true
   },
-  passwordHash: {
-    type: String,
-    required: true
-  },
-  lastfmUsername: {
+  displayName: {
     type: String,
     default: null,
     trim: true
+  },
+  lastfmSessionKey: {
+    type: String,
+    required: true
+  },
+  avatarUrl: {
+    type: String,
+    default: null
+  },
+  sessionToken: {
+    type: String,
+    default: null,
+    index: true
+  },
+  sessionExpiresAt: {
+    type: Date,
+    default: null
   },
   isAdmin: {
     type: Boolean,
