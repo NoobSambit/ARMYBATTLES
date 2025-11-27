@@ -38,9 +38,12 @@ export default function Login() {
         throw new Error(data.error || 'Failed to login');
       }
 
-      // Store token in localStorage
+      // Store token and user data in localStorage
       if (data.token) {
-        localStorage.setItem('session_token', data.token);
+        localStorage.setItem('token', data.token);
+      }
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
       }
 
       // Redirect to home page
