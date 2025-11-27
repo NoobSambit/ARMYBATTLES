@@ -117,114 +117,172 @@ export default function BattlePage({ params }) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* Back button with enhanced styling */}
       <Link href="/dashboard">
-        <button className="btn-secondary mb-6">Back to Dashboard</button>
+        <button className="btn-secondary mb-8 group">
+          <span className="flex items-center gap-2">
+            <svg className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Dashboard
+          </span>
+        </button>
       </Link>
 
-      <div className="mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
-          <h1 className="text-4xl font-bold text-gradient mb-2 sm:mb-0">{battle.name}</h1>
-          <Badge status={battle.status} className="text-lg" />
+      {/* Battle header with gradient */}
+      <div className="mb-10 animate-slide-up">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <h1 className="hero-title text-gradient">{battle.name}</h1>
+          <Badge status={battle.status} className="text-base" />
+        </div>
+        <div className="h-1 w-32 bg-gradient-to-r from-bts-purple via-bts-pink to-transparent rounded-full mb-2" />
+      </div>
+
+      {/* Stats cards with enhanced styling */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div className="stat-card animate-scale-in">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-bts-purple/20 to-bts-deep/20 border border-bts-purple/30 flex items-center justify-center shadow-glow-purple">
+              <svg className="w-7 h-7 text-bts-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="relative z-10">
+              <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-1">Start Time</h3>
+              <p className="text-lg font-bold text-white">{formatDate(battle.startTime)}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="stat-card animate-scale-in delay-75">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-bts-pink/20 to-bts-pink-light/20 border border-bts-pink/30 flex items-center justify-center shadow-glow-pink">
+              <svg className="w-7 h-7 text-bts-pink" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="relative z-10">
+              <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-1">End Time</h3>
+              <p className="text-lg font-bold text-white">{formatDate(battle.endTime)}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="stat-card animate-scale-in delay-150">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent/20 to-army-purple-light/20 border border-accent/30 flex items-center justify-center">
+              <svg className="w-7 h-7 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <div className="relative z-10">
+              <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-1">Participants</h3>
+              <p className="text-lg font-bold text-white">{battle.participantCount}</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="card p-6">
-          <div className="flex items-center mb-2">
-            <svg className="w-5 h-5 mr-2 text-bts-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 className="text-sm font-medium text-gray-400">Start Time</h3>
+      {/* Leaderboard card with enhanced styling */}
+      <div className="card p-8 mb-6 animate-slide-up">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="section-title mb-0">Live Leaderboard</h2>
+            <p className="text-sm text-gray-400 mt-1">Real-time battle standings</p>
           </div>
-          <p className="text-lg font-semibold text-gray-100">{formatDate(battle.startTime)}</p>
-        </div>
-
-        <div className="card p-6">
-          <div className="flex items-center mb-2">
-            <svg className="w-5 h-5 mr-2 text-bts-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 className="text-sm font-medium text-gray-400">End Time</h3>
-          </div>
-          <p className="text-lg font-semibold text-gray-100">{formatDate(battle.endTime)}</p>
-        </div>
-
-        <div className="card p-6">
-          <div className="flex items-center mb-2">
-            <svg className="w-5 h-5 mr-2 text-bts-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            <h3 className="text-sm font-medium text-gray-400">Participants</h3>
-          </div>
-          <p className="text-lg font-semibold text-gray-100">{battle.participantCount}</p>
-        </div>
-      </div>
-
-      <div className="card p-6 mb-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-100">Live Leaderboard</h2>
           {battle.status === 'active' && (
-            <div className="flex items-center gap-2">
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-green-400"></span>
-              <span className="text-sm text-gray-400">Live</span>
+            <div className="flex items-center gap-3 px-4 py-2.5 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-xl shadow-[0_0_15px_rgba(34,197,94,0.2)]">
+              <span className="inline-block h-3 w-3 rounded-full bg-green-400 animate-pulse"></span>
+              <span className="text-sm font-semibold text-green-300 uppercase tracking-wider">Live</span>
             </div>
           )}
         </div>
 
         {leaderboard.length === 0 ? (
-          <div className="text-center py-12 bg-panel border border-border rounded-lg">
-            <p className="text-gray-300 text-lg">No scores yet</p>
-            <p className="text-gray-400 mt-2">Start listening to playlist tracks to see scores!</p>
+          <div className="text-center py-20 bg-gradient-to-br from-panel to-panel-hover border border-border-light rounded-2xl">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-bts-purple/20 to-bts-pink/20 border border-bts-purple/30 flex items-center justify-center">
+              <svg className="w-10 h-10 text-bts-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+              </svg>
+            </div>
+            <p className="text-gray-200 text-xl font-semibold mb-2">No scores yet</p>
+            <p className="text-gray-400">Start listening to playlist tracks to see scores!</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-hidden rounded-xl border border-border-light">
+            <table className="leaderboard-table">
               <thead>
-                <tr className="bg-panel border-b border-border text-gray-300">
-                  <th className="px-6 py-4 text-left text-sm font-medium">Rank</th>
-                  <th className="px-6 py-4 text-left text-sm font-medium">Username</th>
-                  <th className="px-6 py-4 text-right text-sm font-medium">Streams</th>
-                  <th className="px-6 py-4 text-center text-sm font-medium">Status</th>
+                <tr>
+                  <th>Rank</th>
+                  <th>Player</th>
+                  <th className="text-right">Streams</th>
+                  <th className="text-center">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody>
                 {leaderboard.map((entry, index) => (
                   <tr
                     key={entry.userId}
-                    className={`transition-colors ${entry.isCheater ? 'bg-red-500/5' : ''} hover:bg-panel/70`}
+                    className={`${entry.isCheater ? 'bg-yellow-500/5 border-yellow-500/20' : ''}`}
                   >
-                    <td className="px-6 py-4">
-                      <span className={`text-2xl font-bold ${
-                        index === 0 ? 'text-bts-purple' : 
-                        index === 1 ? 'text-gray-300' : 
-                        index === 2 ? 'text-gray-400' : 'text-gray-500'
-                      }`}>{index + 1}</span>
+                    <td>
+                      <div className="flex items-center gap-3">
+                        {index < 3 && (
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg ${
+                            index === 0 ? 'bg-gradient-to-br from-bts-purple to-bts-deep text-white shadow-glow-purple' :
+                            index === 1 ? 'bg-gradient-to-br from-gray-300/20 to-gray-400/20 text-gray-300 border border-gray-400/30' :
+                            'bg-gradient-to-br from-amber-700/20 to-amber-800/20 text-amber-400 border border-amber-600/30'
+                          }`}>
+                            {index + 1}
+                          </div>
+                        )}
+                        {index >= 3 && (
+                          <span className="w-10 text-center text-xl font-bold text-gray-500">{index + 1}</span>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-bts-deep rounded-full flex items-center justify-center text-white font-semibold mr-3">
+                    <td>
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold shadow-glow-purple ${
+                          index === 0 ? 'bg-gradient-to-br from-bts-purple to-bts-deep' : 'bg-gradient-to-br from-panel-hover to-border'
+                        }`}>
                           {entry.username.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-100">{entry.username}</p>
+                          <p className="font-bold text-gray-100 text-base">{entry.username}</p>
                           {entry.isCheater && (
-                            <p className="text-xs text-yellow-300 mt-1">Suspicious activity detected</p>
+                            <p className="text-xs text-yellow-400 font-medium flex items-center gap-1 mt-1">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                              </svg>
+                              Suspicious activity
+                            </p>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="text-2xl font-bold text-bts-purple">{entry.count}</span>
+                    <td className="text-right">
+                      <span className={`text-3xl font-extrabold ${
+                        index === 0 ? 'text-gradient' : 'text-gray-200'
+                      }`}>
+                        {entry.count}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="text-center">
                       {entry.isCheater ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500/15 text-yellow-300 border border-yellow-500/20">
+                        <span className="badge badge-ended">
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
+                          </svg>
                           Flagged
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/15 text-green-300 border border-green-500/20">
-                          OK
+                        <span className="badge badge-active">
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          Verified
                         </span>
                       )}
                     </td>
@@ -236,24 +294,39 @@ export default function BattlePage({ params }) {
         )}
 
         {lastUpdated && (
-          <p className="mt-4 text-sm text-gray-400 text-center">
-            Last updated: {formatDate(lastUpdated)}
-          </p>
+          <div className="mt-6 text-center">
+            <p className="text-sm text-muted flex items-center justify-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Last updated: {formatDate(lastUpdated)}
+            </p>
+          </div>
         )}
       </div>
 
-      <div className="bg-panel border border-border rounded-lg p-4">
-        <p className="text-sm text-gray-300">
-          {battle.status === 'active' && (
-            <>Leaderboard updates automatically every 30 seconds via real-time Socket.io connection.</>
-          )}
-          {battle.status === 'ended' && (
-            <>Battle has ended. Final results are shown above.</>
-          )}
-          {battle.status === 'upcoming' && (
-            <>Battle hasn't started yet. Check back at the start time.</>
-          )}
-        </p>
+      {/* Info card with enhanced styling */}
+      <div className="card-glass p-6 animate-slide-up">
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-bts-purple/20 border border-bts-purple/30 flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 text-bts-purple" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm text-gray-300 leading-relaxed">
+              {battle.status === 'active' && (
+                <>Leaderboard updates automatically every 30 seconds via real-time Socket.io connection. Rankings refresh live as participants stream tracks.</>
+              )}
+              {battle.status === 'ended' && (
+                <>Battle has ended. Final results are displayed above. Thank you for participating!</>
+              )}
+              {battle.status === 'upcoming' && (
+                <>Battle hasn't started yet. Check back at the scheduled start time to join the competition.</>
+              )}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
