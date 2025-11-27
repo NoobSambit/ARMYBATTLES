@@ -153,6 +153,57 @@ export async function getRecentTracks(username, fromTimestamp, toTimestamp) {
   }
 }
 
+/**
+ * Get the last played or currently playing track for a user
+ * @param {string} username - Last.fm username
+ * @returns {Promise<Object|null>} Track object with name, artist, album, image, and nowPlaying flag
+ */
+export async function getLastTrack(username) {
+  try {
+    if (!LASTFM_API_KEY) {
+      throw new Error('Missing Last.fm API configuration');
+    }
+
+    const response = await axios.get('https://ws.audioscrobbler.com/2.0/', {
+      params: {
+        method: 'user.getrecenttracks',
+        user: username,
+        api_key: LASTFM_API_KEY,
+        format: 'json',
+        limit: 1,
+      },
+    });
+
+    if (!response.data.recenttracks || !response.data.recenttracks.track) {
+      return null;
+    }
+
+    const tracks = Array.isArray(response.data.recenttracks.track)
+      ? response.data.recenttracks.track
+      : [response.data.recenttracks.track];
+
+    if (tracks.length === 0) {
+      return null;
+    }
+
+    const track = tracks[0];
+    const images = Array.isArray(track.image) ? track.image : [];
+    const largeImage = images.reverse().find(img => img['#text']);
+
+    return {
+      name: track.name,
+      artist: track.artist['#text'] || track.artist.name || track.artist,
+      album: track.album ? track.album['#text'] : null,
+      image: largeImage ? largeImage['#text'] : null,
+      nowPlaying: track['@attr']?.nowplaying === 'true',
+      timestamp: track.date ? parseInt(track.date.uts) * 1000 : null,
+    };
+  } catch (error) {
+    console.error(`Error fetching last track for ${username}:`, error.response?.data || error.message);
+    return null;
+  }
+}
+
 export function normalizeString(str) {
   return str
     .toLowerCase()

@@ -18,10 +18,6 @@ const UserSchema = new mongoose.Schema({
     default: null,
     trim: true
   },
-  lastfmSessionKey: {
-    type: String,
-    required: true
-  },
   avatarUrl: {
     type: String,
     default: null

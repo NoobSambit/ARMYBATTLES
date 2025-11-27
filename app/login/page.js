@@ -1,33 +1,50 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function Login() {
+  const [username, setUsername] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-  const handleLogin = async () => {
+  const handleLogin = async (e) => {
+    e.preventDefault();
     setError('');
     setLoading(true);
 
+    if (!username.trim()) {
+      setError('Please enter your Last.fm username');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const res = await fetch('/api/auth/lastfm-start', {
+      const res = await fetch('/api/auth/username-login', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         credentials: 'include',
+        body: JSON.stringify({ username: username.trim() }),
       });
+
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to start Last.fm login');
+        throw new Error(data.error || 'Failed to login');
       }
 
-      if (!data.authorizeUrl) {
-        throw new Error('Invalid response from Last.fm login');
+      // Store token in localStorage
+      if (data.token) {
+        localStorage.setItem('session_token', data.token);
       }
 
-      window.location.href = data.authorizeUrl;
+      // Redirect to home page
+      router.push('/');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -45,7 +62,7 @@ export default function Login() {
 
         <div className="card p-8 space-y-6">
           <p className="text-gray-300 text-center">
-            We use your Last.fm account to identify you and track your scrobbles. No passwords to remember—just connect and start competing.
+            Enter your Last.fm username to login and track your scrobbles. We'll fetch your listening data to power the battles.
           </p>
 
           {error && (
@@ -54,24 +71,42 @@ export default function Login() {
             </div>
           )}
 
-          <button
-            onClick={handleLogin}
-            disabled={loading}
-            className="w-full btn-primary flex items-center justify-center"
-          >
-            {loading ? (
-              <>
-                <LoadingSpinner size="sm" />
-                <span className="ml-2">Connecting to Last.fm...</span>
-              </>
-            ) : (
-              'Continue with Last.fm'
-            )}
-          </button>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
+                Last.fm Username
+              </label>
+              <input
+                type="text"
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your Last.fm username"
+                className="w-full px-4 py-3 bg-surface-light border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-bts-pink focus:border-transparent transition-all"
+                disabled={loading}
+                autoComplete="username"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || !username.trim()}
+              className="w-full btn-primary flex items-center justify-center"
+            >
+              {loading ? (
+                <>
+                  <LoadingSpinner size="sm" />
+                  <span className="ml-2">Logging in...</span>
+                </>
+              ) : (
+                'Login'
+              )}
+            </button>
+          </form>
 
           <div className="text-center text-sm text-gray-500">
             <p>
-              Need a Last.fm account?{' '}
+              Don't have a Last.fm account?{' '}
               <a
                 href="https://www.last.fm/join"
                 target="_blank"
@@ -82,9 +117,9 @@ export default function Login() {
               </a>
             </p>
             <p className="mt-3">
-              Looking to create an account?{' '}
+              New to ARMYBATTLES?{' '}
               <Link href="/signup" className="text-bts-pink font-semibold hover:text-bts-purple transition-colors">
-                Go to Sign Up
+                Sign Up
               </Link>
             </p>
           </div>
