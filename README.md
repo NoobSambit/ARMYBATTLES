@@ -5,8 +5,8 @@ A production-ready real-time music streaming battle platform where users compete
 ## Features
 
 ### Core Features
-- **User Authentication**: Password-free Last.fm login with secure session tokens
-- **Last.fm Integration**: Automatically ingest scrobbles for connected Last.fm accounts
+- **User Authentication**: Simple username-only authentication using Last.fm usernames with secure session tokens
+- **Last.fm Integration**: Automatically ingest scrobbles using Last.fm's public API
 - **Battle Creation**: Create battles with Spotify playlists and custom time windows
 - **Real-time Leaderboards**: Live updates via Socket.io every 30 seconds
 - **Scrobble Verification**: Automatic verification of plays matching playlist tracks with normalized matching
@@ -159,12 +159,12 @@ The application will run on http://localhost:5000
 
 ## How to Use
 
-1. **Sign Up / Login**: Click "Continue with Last.fm" and approve access. Your profile is created automatically.
+1. **Sign Up / Login**: Enter your Last.fm username. Your profile is created automatically using your public Last.fm data.
 2. **Create a Battle**: 
    - Enter battle name
    - Paste a Spotify playlist URL (supports playlists with 100+ songs)
    - Set start and end times
-3. **Join Battles**: Browse available battles and join (requires you to have connected Last.fm, which happens during login)
+3. **Join Battles**: Browse available battles and join (requires you to be logged in with your Last.fm username)
 4. **Listen and Compete**: 
    - Listen to tracks from the playlist on any platform (Spotify, Apple Music, YouTube Music, etc.)
    - Make sure you're scrobbling to Last.fm
@@ -242,8 +242,7 @@ Every 30 seconds, the system performs the following steps:
     cleanup.js            # Data cleanup endpoint
     end-battle-manually.js # Manual battle end
   /auth/                  # Authentication endpoints
-    lastfm-start.js       # Initiate Last.fm login flow
-    lastfm-complete.js    # Complete Last.fm login and create session
+    username-login.js     # Login with Last.fm username
     logout.js             # Destroy current session
     me.js                 # Retrieve current user profile
   /battle/                # Battle management
@@ -275,32 +274,20 @@ Every 30 seconds, the system performs the following steps:
 
 ### Authentication Endpoints
 
-#### POST /api/auth/lastfm-start
-Initiate the Last.fm OAuth handshake. Returns the Last.fm authorize URL and sets a short-lived request token cookie.
-
-**Response:**
-```json
-{
-  "authorizeUrl": "https://www.last.fm/api/auth/?api_key=...&token=..."
-}
-```
-
-**Rate Limit:** 10 requests per minute
-
-#### POST /api/auth/lastfm-complete
-Exchange the Last.fm token (returned to `/auth/callback`) for a session, create/update the user, and issue a session token.
+#### POST /api/auth/username-login
+Login or sign up using a Last.fm username. Validates the username exists on Last.fm, creates or updates the user profile, and issues a session token.
 
 **Request:**
 ```json
 {
-  "token": "string"
+  "username": "string (Last.fm username)"
 }
 ```
 
 **Response:**
 ```json
 {
-  "message": "Login successful",
+  "success": true,
   "token": "session_token",
   "user": {
     "id": "user_id",
@@ -312,6 +299,10 @@ Exchange the Last.fm token (returned to `/auth/callback`) for a session, create/
   }
 }
 ```
+
+**Errors:**
+- 404: Last.fm user not found
+- 500: Server error
 
 **Rate Limit:** 10 requests per minute
 
@@ -382,7 +373,7 @@ Create a new battle (requires authentication).
 **Rate Limit:** 5 requests per minute
 
 #### POST /api/battle/join
-Join an existing battle (requires authentication and Last.fm username).
+Join an existing battle (requires authentication).
 
 **Headers:** `Authorization: Bearer {token}`
 
@@ -518,17 +509,17 @@ Clean up battles older than 7 days (requires admin authentication).
 
 Admin users must be created manually in the database. To create an admin user:
 
-1. **Log in via Last.fm** to create the base user account
+1. **Log in with your Last.fm username** to create the base user account
 2. **Access your MongoDB database** (via MongoDB Compass or Atlas)
 3. **Find the user** in the `users` collection
 4. **Update the user document:**
    ```javascript
    db.users.updateOne(
-     { email: "admin@example.com" },
+     { username: "your_lastfm_username" },
      { $set: { isAdmin: true } }
    )
    ```
-5. **Log in again** via Last.fm so the new session token includes admin privileges
+5. **Log in again** with your Last.fm username so the new session token includes admin privileges
 
 ### Testing Admin Endpoints
 
