@@ -1,0 +1,26 @@
+name: Battle Verification Cron
+
+on:
+  schedule:
+    # Run every 2 minutes
+    - cron: '*/2 * * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  verify-battles:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Battle Verification
+        run: |
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            ${{ secrets.VERIFICATION_ENDPOINT_URL }}
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VERIFICATION_ENDPOINT_URL: ${{ secrets.VERIFICATION_ENDPOINT_URL }}
+
+      - name: Check Result
+        if: failure()
+        run: echo "Verification endpoint call failed"
