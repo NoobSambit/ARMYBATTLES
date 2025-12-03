@@ -49,14 +49,24 @@ export default function ExtendBattleModal({ isOpen, onClose, battle, onExtendSuc
     setError('');
 
     try {
+      const token = localStorage.getItem('token');
+      
+      // Convert datetime-local to UTC ISO string
+      // This ensures the time entered in user's local timezone is correctly stored as UTC
+      const convertToUTC = (dateTimeLocal) => {
+        if (!dateTimeLocal) return null;
+        const localDate = new Date(dateTimeLocal);
+        return localDate.toISOString();
+      };
+
       const response = await fetch(`/api/battle/${battle._id}/extend`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
-        credentials: 'include',
         body: JSON.stringify({
-          newEndTime,
+          newEndTime: convertToUTC(newEndTime),
           reason: reason.trim() || undefined,
         }),
       });

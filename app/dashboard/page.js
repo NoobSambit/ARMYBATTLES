@@ -126,13 +126,31 @@ export default function Dashboard() {
 
     try {
       const token = localStorage.getItem('token');
+      
+      // Convert datetime-local values to UTC ISO strings
+      // This ensures the time entered in user's local timezone is correctly stored as UTC
+      const convertToUTC = (dateTimeLocal) => {
+        if (!dateTimeLocal) return null;
+        // Create a date object from the local datetime string
+        // This interprets it as the user's local timezone
+        const localDate = new Date(dateTimeLocal);
+        // Convert to ISO string (UTC)
+        return localDate.toISOString();
+      };
+
+      const payload = {
+        ...battleForm,
+        startTime: convertToUTC(battleForm.startTime),
+        endTime: convertToUTC(battleForm.endTime),
+      };
+
       const res = await fetch('/api/battle/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(battleForm),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();

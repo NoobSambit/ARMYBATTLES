@@ -363,9 +363,15 @@ export default async function handler(req, res) {
   if (cronSecret && authHeader !== cronSecret) {
     logger.warn('Unauthorized verification attempt', {
       hasAuthHeader: !!authHeader,
-      ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress
+      ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+      expectedHeader: 'x-cron-secret',
+      hint: authHeader ? 'Header value mismatch' : 'Missing x-cron-secret header'
     });
-    return res.status(401).json({ error: 'Unauthorized' });
+    return res.status(401).json({ 
+      error: 'Unauthorized',
+      message: 'Missing or invalid x-cron-secret header. Please configure your cron service to send the x-cron-secret header with your CRON_SECRET value.',
+      hint: 'If using cron-job.org, add a custom header in Advanced Settings: Header Name: x-cron-secret, Header Value: [your CRON_SECRET]'
+    });
   }
 
   try {
