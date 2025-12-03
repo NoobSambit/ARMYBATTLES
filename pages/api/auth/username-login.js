@@ -10,7 +10,8 @@ import {
 import { z } from 'zod';
 
 const loginSchema = z.object({
-  username: z.string().min(1, 'Last.fm username is required').trim(),
+  username: z.string().optional(),
+  profileUrl: z.string().optional(),
 });
 
 async function handler(req, res) {
@@ -19,7 +20,26 @@ async function handler(req, res) {
   }
 
   try {
-    const { username: lastfmUsername } = req.body;
+    let { username: lastfmUsername, profileUrl } = req.body;
+
+    // Extract username from profileUrl if only URL is provided
+    if (!lastfmUsername && profileUrl) {
+      const urlMatch = profileUrl.match(/last\.fm\/user\/([^\/\?#]+)/i);
+      if (urlMatch) {
+        lastfmUsername = urlMatch[1];
+      }
+    }
+
+    // If username is provided but not profileUrl, generate it
+    if (lastfmUsername && !profileUrl) {
+      profileUrl = `https://www.last.fm/user/${lastfmUsername}`;
+    }
+
+    if (!lastfmUsername) {
+      return res.status(400).json({
+        error: 'Please provide either a Last.fm username or profile URL'
+      });
+    }
 
     // Verify the Last.fm username exists by fetching profile
     // OPTIMIZATION: Single Last.fm API call instead of duplicate (Netlify optimization)
@@ -46,6 +66,7 @@ async function handler(req, res) {
       // Update existing user's profile data
       user.displayName = displayName;
       user.avatarUrl = avatarUrl;
+      user.lastfmProfileUrl = profileUrl;
     } else {
       // Create new user
       user = new User({
@@ -53,6 +74,7 @@ async function handler(req, res) {
         lastfmUsername: lastfmUsername.toLowerCase(),
         displayName,
         avatarUrl,
+        lastfmProfileUrl: profileUrl,
       });
     }
 
@@ -74,6 +96,7 @@ async function handler(req, res) {
         id: user._id.toString(),
         username: user.username,
         lastfmUsername: user.lastfmUsername,
+        lastfmProfileUrl: user.lastfmProfileUrl,
         displayName: user.displayName,
         avatarUrl: user.avatarUrl,
         isAdmin: user.isAdmin,

@@ -240,7 +240,19 @@ export default function Dashboard() {
             <div>
               <p className="text-sm text-gray-400">Last.fm</p>
               {user.lastfmUsername ? (
-                <p className="font-medium text-green-300">{user.lastfmUsername}</p>
+                <div>
+                  <p className="font-medium text-green-300">{user.lastfmUsername}</p>
+                  {user.lastfmProfileUrl && (
+                    <a
+                      href={user.lastfmProfileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-bts-pink-bright hover:text-bts-pink underline mt-1 inline-block"
+                    >
+                      View Profile
+                    </a>
+                  )}
+                </div>
               ) : (
                 <p className="font-medium text-orange-300">Not connected</p>
               )}

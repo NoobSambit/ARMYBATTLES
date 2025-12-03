@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function Login() {
   const [username, setUsername] = useState('');
+  const [profileUrl, setProfileUrl] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -16,8 +18,8 @@ export default function Login() {
     setError('');
     setLoading(true);
 
-    if (!username.trim()) {
-      setError('Please enter your Last.fm username');
+    if (!username.trim() && !profileUrl.trim()) {
+      setError('Please enter either your Last.fm username or profile URL');
       setLoading(false);
       return;
     }
@@ -29,7 +31,10 @@ export default function Login() {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ username: username.trim() }),
+        body: JSON.stringify({
+          username: username.trim() || undefined,
+          profileUrl: profileUrl.trim() || undefined
+        }),
       });
 
       const data = await res.json();
@@ -66,10 +71,14 @@ export default function Login() {
 
       <div className="w-full max-w-lg relative z-10">
         <div className="text-center mb-10 animate-slide-up">
-          <div className="mb-6 inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-bts-purple to-bts-pink glow-purple animate-float">
-            <svg className="w-11 h-11 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
+          <div className="mb-6 inline-flex items-center justify-center w-20 h-20 rounded-2xl overflow-hidden glow-purple animate-float">
+            <Image
+              src="https://res.cloudinary.com/dtamgk7i5/image/upload/v1764741224/armybattles-Picsart-BackgroundRemover_fd11rd.png"
+              alt="ARMYBATTLES Logo"
+              width={80}
+              height={80}
+              className="object-cover"
+            />
           </div>
           <h1 className="text-4xl sm:text-5xl font-black gradient-text-army mb-3">Welcome Back</h1>
           <p className="text-gray-300 text-lg">Log in to join the streaming battles</p>
@@ -77,7 +86,7 @@ export default function Login() {
 
         <div className="card-premium p-8 sm:p-10 space-y-6 animate-scale-in">
           <p className="text-gray-300 text-center">
-            Enter your Last.fm username to login and track your scrobbles. We'll fetch your listening data to power the battles.
+            Enter your Last.fm username or profile URL to login and track your scrobbles. We'll fetch your listening data to power the battles.
           </p>
 
           {error && (
@@ -89,7 +98,7 @@ export default function Login() {
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label htmlFor="username" className="block text-sm font-bold text-gray-200 mb-3 uppercase tracking-wider">
-                Last.fm Username
+                Last.fm Username (Optional)
               </label>
               <input
                 type="text"
@@ -101,11 +110,35 @@ export default function Login() {
                 disabled={loading}
                 autoComplete="username"
               />
+              <p className="text-xs text-gray-400 mt-2">
+                This is the portion in your Last.fm URL: <span className="text-bts-pink-bright font-mono">last.fm/user/<strong>YourUsername</strong></span>
+              </p>
+            </div>
+
+            <div className="text-center text-sm text-gray-400 font-semibold">OR</div>
+
+            <div>
+              <label htmlFor="profileUrl" className="block text-sm font-bold text-gray-200 mb-3 uppercase tracking-wider">
+                Last.fm Profile URL (Optional)
+              </label>
+              <input
+                type="url"
+                id="profileUrl"
+                value={profileUrl}
+                onChange={(e) => setProfileUrl(e.target.value)}
+                placeholder="https://www.last.fm/user/YourUsername"
+                className="input-field"
+                disabled={loading}
+                autoComplete="url"
+              />
+              <p className="text-xs text-gray-400 mt-2">
+                Your full Last.fm profile URL (e.g., <span className="text-bts-pink-bright font-mono">https://www.last.fm/user/NoobSambit</span>)
+              </p>
             </div>
 
             <button
               type="submit"
-              disabled={loading || !username.trim()}
+              disabled={loading || (!username.trim() && !profileUrl.trim())}
               className="w-full btn-primary flex items-center justify-center py-4 text-lg"
             >
               {loading ? (

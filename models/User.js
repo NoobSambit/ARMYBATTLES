@@ -22,6 +22,11 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  lastfmProfileUrl: {
+    type: String,
+    default: null,
+    trim: true
+  },
   sessionToken: {
     type: String,
     default: null,

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -87,10 +88,14 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-18">
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-3 group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-bts-purple to-bts-pink flex items-center justify-center glow-purple group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+              <div className="w-10 h-10 rounded-xl overflow-hidden glow-purple group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                <Image
+                  src="https://res.cloudinary.com/dtamgk7i5/image/upload/v1764741224/armybattles-Picsart-BackgroundRemover_fd11rd.png"
+                  alt="ARMYBATTLES Logo"
+                  width={40}
+                  height={40}
+                  className="object-cover"
+                />
               </div>
               <span className="font-display tracking-tighter text-2xl font-black gradient-text-army drop-shadow-lg">ARMYBATTLES</span>
             </Link>

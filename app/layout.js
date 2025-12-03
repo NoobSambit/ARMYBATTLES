@@ -9,15 +9,28 @@ export const metadata = {
     { media: '(prefers-color-scheme: dark)', color: '#0B0B11' },
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
   ],
+  icons: {
+    icon: 'https://res.cloudinary.com/dtamgk7i5/image/upload/v1764741224/armybattles-Picsart-BackgroundRemover_fd11rd.png',
+    apple: 'https://res.cloudinary.com/dtamgk7i5/image/upload/v1764741224/armybattles-Picsart-BackgroundRemover_fd11rd.png',
+  },
   openGraph: {
     title: 'ARMYBATTLES',
     description: 'Real-time BTS streaming battles powered by verified scrobbles',
     type: 'website',
+    images: [
+      {
+        url: 'https://res.cloudinary.com/dtamgk7i5/image/upload/v1764741224/armybattles-Picsart-BackgroundRemover_fd11rd.png',
+        width: 1200,
+        height: 630,
+        alt: 'ARMYBATTLES',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'ARMYBATTLES',
     description: 'Real-time BTS streaming battles powered by verified scrobbles',
+    images: ['https://res.cloudinary.com/dtamgk7i5/image/upload/v1764741224/armybattles-Picsart-BackgroundRemover_fd11rd.png'],
   },
 }
 

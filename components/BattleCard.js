@@ -10,8 +10,8 @@ export default function BattleCard({ battle }) {
         <div className="absolute inset-0 bg-gradient-to-br from-bts-purple/5 via-transparent to-bts-pink/5 opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none" />
 
         {/* Header with title and badge */}
-        <div className="relative flex items-start justify-between mb-4 sm:mb-6 gap-2">
-          <h3 className="text-base sm:text-xl lg:text-2xl font-black text-gray-100 line-clamp-2 group-hover:gradient-text-army transition-all duration-300">
+        <div className="relative flex items-start justify-between mb-3 sm:mb-6 gap-2">
+          <h3 className="text-sm sm:text-lg lg:text-2xl font-black text-gray-100 line-clamp-2 group-hover:gradient-text-army transition-all duration-300">
             {battle.name}
           </h3>
           <Badge status={battle.status} />

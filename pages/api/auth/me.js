@@ -12,6 +12,7 @@ async function handler(req, res) {
       username: user.username,
       displayName: user.displayName,
       lastfmUsername: user.lastfmUsername,
+      lastfmProfileUrl: user.lastfmProfileUrl,
       avatarUrl: user.avatarUrl,
       isAdmin: user.isAdmin,
     },
