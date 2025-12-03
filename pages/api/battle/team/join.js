@@ -5,15 +5,6 @@ import Team from '../../../../models/Team';
 import StreamCount from '../../../../models/StreamCount';
 import { joinTeamSchema } from '../../../../lib/schemas';
 
-function getSocketIO() {
-  try {
-    const socketModule = require('../../socket');
-    return socketModule.getIO();
-  } catch (error) {
-    return null;
-  }
-}
-
 async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -73,15 +64,6 @@ async function handler(req, res) {
       { upsert: true, setDefaultsOnInsert: true }
     );
 
-    // Emit Socket.io event for real-time update
-    const io = getSocketIO();
-    if (io) {
-      io.to(`battle-${team.battleId}`).emit('team-updated', {
-        teamId: team._id,
-        action: 'member-joined',
-        memberCount: team.members.length,
-      });
-    }
 
     return res.status(200).json({
       team: {

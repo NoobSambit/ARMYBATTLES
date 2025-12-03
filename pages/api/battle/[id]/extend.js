@@ -108,16 +108,6 @@ async function handler(req, res) {
       },
     });
 
-    // Emit socket event for real-time update
-    if (global.io) {
-      global.io.to(`battle-${battleId}`).emit('battle-extended', {
-        battleId,
-        newEndTime: newEndDate,
-        extensionHours,
-        reason: reason || 'No reason provided',
-      });
-    }
-
     return res.status(200).json({
       success: true,
       message: `Battle extended by ${extensionHours} hours`,

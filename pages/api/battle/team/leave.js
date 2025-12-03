@@ -5,15 +5,6 @@ import Team from '../../../../models/Team';
 import StreamCount from '../../../../models/StreamCount';
 import { leaveTeamSchema } from '../../../../lib/schemas';
 
-function getSocketIO() {
-  try {
-    const socketModule = require('../../socket');
-    return socketModule.getIO();
-  } catch (error) {
-    return null;
-  }
-}
-
 async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -59,15 +50,6 @@ async function handler(req, res) {
         { teamId: null }
       );
 
-      // Emit Socket.io event for real-time update
-      const io = getSocketIO();
-      if (io) {
-        io.to(`battle-${team.battleId}`).emit('team-updated', {
-          teamId: team._id,
-          action: 'team-deleted',
-          memberCount: 0,
-        });
-      }
 
       return res.status(200).json({
         message: 'Left team successfully. Team was deleted as it became empty.',
@@ -81,15 +63,6 @@ async function handler(req, res) {
         { teamId: null }
       );
 
-      // Emit Socket.io event for real-time update
-      const io = getSocketIO();
-      if (io) {
-        io.to(`battle-${team.battleId}`).emit('team-updated', {
-          teamId: team._id,
-          action: 'member-left',
-          memberCount: team.members.length,
-        });
-      }
 
       return res.status(200).json({
         message: 'Left team successfully',

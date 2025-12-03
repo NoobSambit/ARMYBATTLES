@@ -121,16 +121,6 @@ async function handler(req, res) {
       },
     });
 
-    // Emit socket event for real-time update
-    if (global.io) {
-      global.io.to(`battle-${battleId}`).emit('participant-kicked', {
-        battleId,
-        userId,
-        username: participant.username,
-        reason: reason || 'No reason provided',
-      });
-    }
-
     return res.status(200).json({
       success: true,
       message: `${participant.username} has been removed from the battle`,
