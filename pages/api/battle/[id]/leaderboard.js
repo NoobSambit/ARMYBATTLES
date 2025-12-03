@@ -189,6 +189,7 @@ async function handler(req, res) {
       status: battle.status,
       startTime: battle.startTime,
       endTime: battle.endTime,
+      spotifyPlaylist: battle.spotifyPlaylist,
       participantCount: battle.participants.length,
       hostId: battle.host.toString(),
       participants: battle.participants.map(p => p._id.toString()),

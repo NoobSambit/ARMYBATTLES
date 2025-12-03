@@ -139,6 +139,7 @@ export default function BattlePage({ params }) {
         startTime: data.startTime,
         endTime: data.endTime,
         participantCount: data.participantCount,
+        spotifyPlaylist: data.spotifyPlaylist,
       });
       setLeaderboard(data.leaderboard);
       setLastUpdated(data.updatedAt);
@@ -223,6 +224,79 @@ export default function BattlePage({ params }) {
             <h1 className="hero-title text-bts-purple">{battle.name}</h1>
             <Badge status={battle.status} className="text-base self-start sm:self-auto" />
           </div>
+          {/* Battle playlist CTA + embed */}
+          {battle.spotifyPlaylist && (
+            // Derive playlist URLs from the stored Spotify playlist ID
+            // We always store the bare playlist ID in Mongo, not the full URL
+            (() => {
+              const playlistId = battle.spotifyPlaylist;
+              const playlistUrl = `https://open.spotify.com/playlist/${playlistId}`;
+              // Use the large embed style requested
+              const playlistEmbedUrl = `https://open.spotify.com/embed/playlist/${playlistId}?utm_source=generator&theme=0`;
+              return (
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-[#1DB954]/10 border border-[#1DB954]/40 flex items-center justify-center">
+                    <svg
+                      className="w-5 h-5 text-[#1DB954]"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path
+                        fill="currentColor"
+                        d="M12 2a10 10 0 1010 10A10.011 10.011 0 0012 2zm4.53 14.71a.75.75 0 01-1.03.24 8.23 8.23 0 00-4.07-1.09 8.37 8.37 0 00-2.86.49.75.75 0 11-.5-1.41 9.87 9.87 0 013.36-.57 9.7 9.7 0 014.79 1.29.75.75 0 01.31 1.05zm1.43-3.02a.94.94 0 01-1.29.31 11.42 11.42 0 00-5.4-1.46 11.18 11.18 0 00-3.68.6.94.94 0 11-.6-1.78 12.98 12.98 0 014.28-.7 13.3 13.3 0 016.3 1.7.94.94 0 01.39 1.33zm.13-3.14a1.13 1.13 0 01-1.54.37 13.93 13.93 0 00-6.68-1.81 13.6 13.6 0 00-4.39.72 1.13 1.13 0 11-.73-2.14 15.85 15.85 0 015.11-.83 16.17 16.17 0 017.76 2.1 1.13 1.13 0 01.47 1.59z"
+                      />
+                    </svg>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+                      Battle Playlist
+                    </p>
+                    <p className="text-sm text-gray-300">
+                      Queue this playlist on Spotify while you stream for scrobbles.
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href={playlistUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-full bg-[#1DB954] text-sm font-semibold text-black shadow-[0_0_30px_rgba(29,185,84,0.65)] hover:brightness-110 transition-all duration-200 w-full sm:w-auto"
+                >
+                  <span className="mr-2">Open on Spotify</span>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 12h13M12 5l7 7-7 7"
+                    />
+                  </svg>
+                </a>
+              </div>
+              <div className="rounded-xl overflow-hidden bg-black shadow-lg">
+                <iframe
+                  src={playlistEmbedUrl}
+                  width="100%"
+                  height="352"
+                  frameBorder="0"
+                  allowfullscreen=""
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  loading="lazy"
+                  style={{ borderRadius: '12px' }}
+                  title={`${battle.name} playlist`}
+                />
+              </div>
+            </div>
+              );
+            })()
+          )}
           <div className="flex flex-wrap items-center gap-2">
             {!userInBattle && battle.status !== 'ended' && (
               <button
@@ -274,45 +348,49 @@ export default function BattlePage({ params }) {
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div className="stat-card animate-scale-in">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-lg bg-bts-purple/20 border border-bts-purple/30 flex items-center justify-center">
-              <svg className="w-7 h-7 text-bts-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <div className="grid grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-10">
+        <div className="stat-card animate-scale-in p-3 md:p-6">
+          <div className="flex flex-col md:flex-row items-center md:gap-4 text-center md:text-left">
+            <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg bg-bts-purple/20 border border-bts-purple/30 flex items-center justify-center mb-2 md:mb-0">
+              <svg className="w-5 h-5 md:w-7 md:h-7 text-bts-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div>
-              <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-1">Start Time</h3>
-              <p className="text-lg font-bold text-white">{formatDate(battle.startTime)}</p>
+              <h3 className="text-[10px] md:text-xs font-semibold text-muted uppercase tracking-wider mb-0.5 md:mb-1">Start</h3>
+              <p className="text-[10px] sm:text-xs md:text-lg font-bold text-white leading-tight">
+                {formatDate(battle.startTime)}
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="stat-card animate-scale-in delay-75">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-lg bg-bts-pink/20 border border-bts-pink/30 flex items-center justify-center">
-              <svg className="w-7 h-7 text-bts-pink" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <div className="stat-card animate-scale-in delay-75 p-3 md:p-6">
+          <div className="flex flex-col md:flex-row items-center md:gap-4 text-center md:text-left">
+            <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg bg-bts-pink/20 border border-bts-pink/30 flex items-center justify-center mb-2 md:mb-0">
+              <svg className="w-5 h-5 md:w-7 md:h-7 text-bts-pink" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div>
-              <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-1">End Time</h3>
-              <p className="text-lg font-bold text-white">{formatDate(battle.endTime)}</p>
+              <h3 className="text-[10px] md:text-xs font-semibold text-muted uppercase tracking-wider mb-0.5 md:mb-1">End</h3>
+              <p className="text-[10px] sm:text-xs md:text-lg font-bold text-white leading-tight">
+                {formatDate(battle.endTime)}
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="stat-card animate-scale-in delay-150">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center">
-              <svg className="w-7 h-7 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <div className="stat-card animate-scale-in delay-150 p-3 md:p-6">
+          <div className="flex flex-col md:flex-row items-center md:gap-4 text-center md:text-left">
+            <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center mb-2 md:mb-0">
+              <svg className="w-5 h-5 md:w-7 md:h-7 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
             <div>
-              <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-1">Participants</h3>
-              <p className="text-lg font-bold text-white">{battle.participantCount}</p>
+              <h3 className="text-[10px] md:text-xs font-semibold text-muted uppercase tracking-wider mb-0.5 md:mb-1">Joined</h3>
+              <p className="text-sm md:text-lg font-bold text-white">{battle.participantCount}</p>
             </div>
           </div>
         </div>
@@ -381,7 +459,18 @@ export default function BattlePage({ params }) {
             <p className="text-gray-400">Start listening to playlist tracks to see scores!</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-2">
+             {/* Leaderboard Header */}
+             <div className="hidden md:flex items-center justify-between px-6 py-2 text-xs font-semibold text-muted uppercase tracking-wider">
+               <div className="flex items-center gap-4 flex-1">
+                 <span className="w-12 text-center">Rank</span>
+                 <span>Participant</span>
+               </div>
+               <div className="flex items-center gap-4 w-32 justify-end">
+                 <span>Score</span>
+               </div>
+             </div>
+
             {leaderboard.map((entry, index) => {
               const rank = index + 1;
 
@@ -401,19 +490,19 @@ export default function BattlePage({ params }) {
                   <div
                     key={entry.userId?.toString() || `solo-${index}`}
                     className={cn(
-                      'card p-6 transition-colors duration-200',
+                      'card p-3 md:p-6 transition-colors duration-200',
                       'border-l-4',
                       entry.isCheater
                         ? 'border-l-red-500/70'
                         : 'border-l-blue-500/70'
                     )}
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2 md:gap-4">
                       {/* Rank & Player Info */}
-                      <div className="flex items-center gap-4 flex-1">
+                      <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
                         {/* Rank Badge */}
                         <div className={cn(
-                          'w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg',
+                          'w-8 h-8 md:w-12 md:h-12 rounded-lg flex-shrink-0 flex items-center justify-center font-bold text-xs md:text-lg',
                           rank <= 3
                             ? 'bg-yellow-400 text-gray-900'
                             : 'bg-surface-light text-gray-400'
@@ -425,8 +514,8 @@ export default function BattlePage({ params }) {
                         </div>
 
                         {/* Player Details */}
-                        <div className="flex items-center gap-4 flex-1">
-                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold ${
+                        <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
+                          <div className={`w-8 h-8 md:w-12 md:h-12 rounded-lg flex-shrink-0 flex items-center justify-center text-white font-bold text-xs md:text-sm ${
                             rank === 1 ? 'bg-bts-purple' : 'bg-panel-hover'
                           }`}>
                             {entry.avatarUrl ? (
@@ -439,17 +528,17 @@ export default function BattlePage({ params }) {
                               entry.username?.charAt(0).toUpperCase() || '?'
                             )}
                           </div>
-                          <div>
-                            <p className="font-bold text-gray-100 text-base">
+                          <div className="min-w-0 overflow-hidden">
+                            <p className="font-bold text-gray-100 text-xs sm:text-sm md:text-base truncate">
                               {entry.displayName || entry.username}
                             </p>
-                            <p className="text-sm text-muted">@{entry.username}</p>
+                            <p className="text-[10px] md:text-sm text-muted truncate">@{entry.username}</p>
                             {entry.isCheater && (
-                              <p className="text-xs text-red-400 font-medium flex items-center gap-1 mt-1">
-                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <p className="text-[10px] text-red-400 font-medium flex items-center gap-0.5 mt-1">
+                                <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                 </svg>
-                                Suspicious activity
+                                <span>Suspicious</span>
                               </p>
                             )}
                           </div>
@@ -457,12 +546,12 @@ export default function BattlePage({ params }) {
                       </div>
 
                       {/* Score & Actions */}
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1.5 md:gap-6 flex-shrink-0">
                         <div className="text-right">
-                          <div className="text-3xl font-extrabold text-white">
+                          <div className="text-base sm:text-lg md:text-3xl font-extrabold text-white">
                             {entry.count}
                           </div>
-                          <div className="text-xs text-muted uppercase tracking-wider">
+                          <div className="text-[9px] sm:text-[10px] text-muted uppercase tracking-wider md:hidden">
                             Scrobbles
                           </div>
                         </div>
@@ -477,10 +566,11 @@ export default function BattlePage({ params }) {
                               });
                               setKickModalOpen(true);
                             }}
-                            className="px-3 py-2 rounded-lg bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/30 transition-all duration-200 text-sm font-medium"
+                            className="p-1.5 md:px-3 md:py-2 rounded-lg bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/30 transition-all duration-200 flex-shrink-0"
                             title="Remove participant"
                           >
-                            ⚠️ Remove
+                            <span className="md:hidden text-sm">✕</span>
+                            <span className="hidden md:inline text-sm font-medium">Remove</span>
                           </button>
                         )}
                       </div>
