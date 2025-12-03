@@ -7,8 +7,15 @@ if (!cached) {
 }
 
 async function connectDB(retries = 5, delay = 1000) {
-  if (cached.conn) {
+  // Check if connection exists and is still ready (important for serverless)
+  if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
+  }
+  
+  // If connection exists but is not ready, reset it
+  if (cached.conn && mongoose.connection.readyState !== 1) {
+    cached.conn = null;
+    cached.promise = null;
   }
 
   if (!cached.promise) {
