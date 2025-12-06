@@ -1,9 +1,13 @@
 // Script to fix the finalLeaderboard for an ended battle
 // Usage: node scripts/fix-battle-leaderboard.js <battleId>
 
-const mongoose = require('mongoose');
-const fs = require('fs');
-const path = require('path');
+import mongoose from 'mongoose';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load .env.local file manually
 const envPath = path.join(__dirname, '../.env.local');
@@ -20,9 +24,10 @@ if (fs.existsSync(envPath)) {
 }
 
 // Import models
-const Battle = require('../models/Battle');
-const StreamCount = require('../models/StreamCount');
-const Team = require('../models/Team');
+import Battle from '../models/Battle.js';
+import StreamCount from '../models/StreamCount.js';
+import User from '../models/User.js';
+import Team from '../models/Team.js';
 
 async function fixBattleLeaderboard(battleId) {
   try {
@@ -70,6 +75,7 @@ async function fixBattleLeaderboard(battleId) {
             memberCount: sc.teamId.members.length,
             totalScore: 0,
             isCheater: false,
+            members: [], // Store individual team member scores
           });
         }
 
@@ -78,6 +84,15 @@ async function fixBattleLeaderboard(battleId) {
         if (sc.isCheater) {
           teamData.isCheater = true;
         }
+
+        // Add individual team member data
+        teamData.members.push({
+          userId: sc.userId._id,
+          username: sc.userId.username,
+          displayName: sc.userId.displayName,
+          count: sc.count,
+          isCheater: sc.isCheater || false,
+        });
       } else {
         // Solo player
         soloPlayers.push({

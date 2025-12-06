@@ -55,8 +55,43 @@ async function handler(req, res) {
         // Convert to plain object to ensure we can modify it
         const plainEntry = entry.toObject ? entry.toObject() : { ...entry };
 
+        // Handle new format with explicit type field
         if (plainEntry.type === 'solo' && plainEntry.userId) {
-          // Populate user data for solo players
+          // Populate user data for solo players, but fallback to stored data if user is deleted
+          const user = await User.findById(plainEntry.userId, 'username displayName avatarUrl');
+
+          return {
+            type: 'solo',
+            userId: plainEntry.userId,
+            username: user?.username || plainEntry.username || 'Unknown User',
+            displayName: user?.displayName || plainEntry.displayName || plainEntry.username || 'Unknown User',
+            avatarUrl: user?.avatarUrl || plainEntry.avatarUrl || null,
+            count: plainEntry.count || 0,
+            isCheater: plainEntry.isCheater || false,
+          };
+        } else if (plainEntry.type === 'team') {
+          // For teams, use stored data from finalLeaderboard
+          // Only fetch team if we need to update missing data
+          const team = plainEntry.teamId ? await Team.findById(plainEntry.teamId) : null;
+
+          return {
+            type: 'team',
+            teamId: plainEntry.teamId,
+            teamName: plainEntry.teamName || team?.name || 'Unknown Team',
+            memberCount: plainEntry.memberCount || team?.members.length || plainEntry.members?.length || 0,
+            totalScore: plainEntry.totalScore || 0,
+            isCheater: plainEntry.isCheater || false,
+            // Include individual team member scores for scorecard generation
+            // Use stored members data from finalLeaderboard
+            members: plainEntry.members || [],
+          };
+        }
+
+        // BACKWARD COMPATIBILITY: Handle old format without type field
+        // Old format had: userId, username, count, isCheater (no type field)
+        // This was used for solo players before team support
+        else if (!plainEntry.type && plainEntry.userId) {
+          // Old solo player format
           const user = await User.findById(plainEntry.userId, 'username displayName avatarUrl');
           if (user) {
             return {
@@ -65,24 +100,41 @@ async function handler(req, res) {
               username: user.username,
               displayName: user.displayName,
               avatarUrl: user.avatarUrl,
-              count: plainEntry.count,
+              count: plainEntry.count || 0,
               isCheater: plainEntry.isCheater || false,
             };
           }
-        } else if (plainEntry.type === 'team') {
-          // For teams, populate team data
+        }
+        // If entry has teamId but no type, it's likely old team format
+        else if (!plainEntry.type && plainEntry.teamId) {
           const team = await Team.findById(plainEntry.teamId);
           if (team) {
+            // For old team entries, try to fetch individual member scores from StreamCount
+            const streamCounts = await StreamCount.find({
+              battleId: battle._id,
+              teamId: plainEntry.teamId
+            }).populate('userId', 'username displayName');
+
+            const members = streamCounts.map(sc => ({
+              userId: sc.userId._id,
+              username: sc.userId.username,
+              displayName: sc.userId.displayName,
+              count: sc.count,
+              isCheater: sc.isCheater || false,
+            }));
+
             return {
               type: 'team',
               teamId: plainEntry.teamId,
               teamName: team.name,
               memberCount: team.members.length,
-              totalScore: plainEntry.totalScore,
+              totalScore: plainEntry.totalScore || plainEntry.count || 0,
               isCheater: plainEntry.isCheater || false,
+              members: members,
             };
           }
         }
+
         return plainEntry;
       }));
 

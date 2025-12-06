@@ -94,22 +94,33 @@ async function freezeBattle(battle) {
     for (const sc of streamCounts) {
       if (sc.teamId) {
         // Team member
-        if (!teamScoresMap.has(sc.teamId._id.toString())) {
-          teamScoresMap.set(sc.teamId._id.toString(), {
+        const teamIdStr = sc.teamId._id.toString();
+        if (!teamScoresMap.has(teamIdStr)) {
+          teamScoresMap.set(teamIdStr, {
             type: 'team',
             teamId: sc.teamId._id,
             teamName: sc.teamId.name,
             memberCount: sc.teamId.members.length,
             totalScore: 0,
             isCheater: false,
+            members: [], // Store individual team member scores
           });
         }
 
-        const teamData = teamScoresMap.get(sc.teamId._id.toString());
+        const teamData = teamScoresMap.get(teamIdStr);
         teamData.totalScore += sc.count;
         if (sc.isCheater) {
           teamData.isCheater = true;
         }
+
+        // Add individual team member data
+        teamData.members.push({
+          userId: sc.userId._id,
+          username: sc.userId.username,
+          displayName: sc.userId.displayName,
+          count: sc.count,
+          isCheater: sc.isCheater || false,
+        });
       } else {
         // Solo player
         soloPlayers.push({

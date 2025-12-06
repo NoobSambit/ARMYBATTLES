@@ -48,9 +48,8 @@ export default function BattlesPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-10 animate-slide-up">
-        <h1 className="hero-title text-gradient mb-4">All Battles</h1>
-        <p className="text-xl text-gray-400">Join the competition or spectate the action</p>
-        <div className="h-1 w-32 bg-gradient-to-r from-bts-purple via-bts-pink to-transparent rounded-full mt-4" />
+        <h1 className="text-4xl sm:text-5xl font-black text-white mb-3">All Battles</h1>
+        <p className="text-lg text-gray-400">Join the competition or spectate the action</p>
       </div>
 
       <div className="mb-10 animate-slide-up">

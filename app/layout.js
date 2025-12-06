@@ -1,5 +1,6 @@
 import './globals.css'
 import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
 import { Inter, Space_Grotesk } from 'next/font/google'
 
 export const metadata = {
@@ -40,11 +41,12 @@ const grotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-display' }
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className="dark">
-      <body className={`antialiased bg-surface ${inter.variable} ${grotesk.variable} font-sans`}>
+      <body className={`antialiased bg-surface ${inter.variable} ${grotesk.variable} font-sans flex flex-col min-h-screen`}>
         <Navbar />
-        <main className="min-h-screen">
+        <main className="flex-1">
           {children}
         </main>
+        <Footer />
       </body>
     </html>
   )

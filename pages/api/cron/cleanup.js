@@ -2,7 +2,6 @@ import connectDB from '../../../utils/db';
 import Battle from '../../../models/Battle';
 import StreamCount from '../../../models/StreamCount';
 import Team from '../../../models/Team';
-import BattleActivityLog from '../../../models/BattleActivityLog';
 import User from '../../../models/User';
 import { logger } from '../../../utils/logger';
 
@@ -48,7 +47,6 @@ async function performCleanup() {
       battlesDeleted: 0,
       streamCountsDeleted: 0,
       teamsDeleted: 0,
-      activityLogsDeleted: 0,
       expiredSessionsCleaned: 0,
     };
 
@@ -65,13 +63,7 @@ async function performCleanup() {
       });
       summary.teamsDeleted = teamsResult.deletedCount;
 
-      // Step 4: Delete associated Activity Logs
-      const activityLogsResult = await BattleActivityLog.deleteMany({
-        battleId: { $in: battleIds },
-      });
-      summary.activityLogsDeleted = activityLogsResult.deletedCount;
-
-      // Step 5: Delete the battles themselves
+      // Step 4: Delete the battles themselves
       const battlesResult = await Battle.deleteMany({
         _id: { $in: battleIds },
       });
@@ -91,12 +83,7 @@ async function performCleanup() {
     });
     summary.teamsDeleted += orphanedTeams.deletedCount;
 
-    const orphanedActivityLogs = await BattleActivityLog.deleteMany({
-      battleId: { $nin: existingBattleIds },
-    });
-    summary.activityLogsDeleted += orphanedActivityLogs.deletedCount;
-
-    // Step 7: Clean up expired user sessions (optional)
+    // Step 6: Clean up expired user sessions (optional)
     if (cleanupExpiredSessions) {
       const now = new Date();
       const expiredSessionsResult = await User.updateMany(

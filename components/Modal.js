@@ -24,16 +24,16 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 animate-fade-in overflow-y-auto" style={{ position: 'fixed' }}>
       {/* Premium backdrop with enhanced blur */}
       <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-xl transition-all duration-400"
+        className="absolute inset-0 bg-black/80 backdrop-blur-xl transition-all duration-400"
         onClick={onClose}
       />
 
       {/* Premium modal container */}
       <div className={cn(
-        'relative bg-gradient-to-br from-panel-elevated via-panel to-panel-hover border-2 border-border-glow/30 rounded-3xl shadow-card-premium w-full animate-scale-in overflow-hidden',
+        'relative bg-gradient-to-br from-panel-elevated via-panel to-panel-hover border-2 border-border-glow/30 rounded-3xl shadow-card-premium w-full max-h-[90vh] my-4 animate-scale-in overflow-hidden flex flex-col',
         sizeClasses[size]
       )}>
         {/* Animated gradient border */}
@@ -57,7 +57,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
         </div>
 
         {/* Content area with premium scrollbar */}
-        <div className="px-6 sm:px-8 py-6 max-h-[calc(100vh-250px)] overflow-y-auto text-gray-100 custom-scrollbar">
+        <div className="px-6 sm:px-8 py-6 overflow-y-auto text-gray-100 custom-scrollbar flex-1 min-h-0">
           {children}
         </div>
       </div>

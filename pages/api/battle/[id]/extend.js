@@ -1,7 +1,6 @@
 import dbConnect from '../../../../utils/db';
 import Battle from '../../../../models/Battle';
 import { extendBattleSchema } from '../../../../lib/schemas';
-import { logActivity } from '../../../../utils/activityLogger';
 import { createHandler, withCors, withRateLimit, withAuth } from '../../../../lib/middleware';
 
 /**
@@ -92,21 +91,6 @@ async function handler(req, res) {
     // Calculate extension duration
     const extensionDuration = newEndDate - currentEndDate;
     const extensionHours = Math.round(extensionDuration / (1000 * 60 * 60) * 10) / 10;
-
-    // Log activity
-    await logActivity({
-      battleId,
-      actorId: hostId,
-      actorUsername: 'Host', // In production, fetch from User model
-      action: 'extended_battle',
-      metadata: {
-        previousEndTime,
-        newEndTime: newEndDate,
-        extensionDuration,
-        extensionHours,
-        reason: reason || 'No reason provided',
-      },
-    });
 
     return res.status(200).json({
       success: true,

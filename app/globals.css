@@ -237,4 +237,11 @@
   .border-gradient-purple {
     border-image: linear-gradient(135deg, #8B5CF6, #EC4899) 1;
   }
+
+  /* Ensure no debug outlines leak into exported scorecards */
+  #scorecard-canvas *,
+  #scorecard-canvas *::before,
+  #scorecard-canvas *::after {
+    outline: none !important;
+  }
 }

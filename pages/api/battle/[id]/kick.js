@@ -3,7 +3,6 @@ import Battle from '../../../../models/Battle';
 import StreamCount from '../../../../models/StreamCount';
 import Team from '../../../../models/Team';
 import { kickParticipantSchema } from '../../../../lib/schemas';
-import { logActivity } from '../../../../utils/activityLogger';
 import { createHandler, withCors, withRateLimit, withAuth } from '../../../../lib/middleware';
 
 /**
@@ -105,21 +104,6 @@ async function handler(req, res) {
 
     // Save battle
     await battle.save();
-
-    // Log activity
-    await logActivity({
-      battleId,
-      actorId: hostId,
-      actorUsername: 'Host', // In production, fetch from User model
-      action: 'kicked_participant',
-      targetUserId: userId,
-      targetUsername: participant.username,
-      metadata: {
-        reason: reason || 'No reason provided',
-        scoreAtRemoval,
-        teamId: team?._id,
-      },
-    });
 
     return res.status(200).json({
       success: true,

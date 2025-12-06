@@ -5,11 +5,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import DonationModal from './DonationModal';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showDonationModal, setShowDonationModal] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -83,7 +85,8 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 bg-panel/60 backdrop-blur-xl border-b border-border-light/50 shadow-glass">
+    <>
+    <nav className="sticky top-0 z-40 bg-panel/60 backdrop-blur-xl border-b border-border-light/50 shadow-glass">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-18">
           <div className="flex items-center">
@@ -101,6 +104,7 @@ export default function Navbar() {
             </Link>
           </div>
 
+          <div className="flex items-center gap-4">
           <div className="hidden md:flex items-center space-x-1">
             <Link
               href="/"
@@ -191,6 +195,14 @@ export default function Navbar() {
                 )}
               </div>
             )}
+          </div>
+
+          <button
+            onClick={() => setShowDonationModal(true)}
+            className="px-4 py-2 text-sm font-bold bg-bts-pink hover:bg-bts-pink-bright text-white rounded-xl transition-all duration-300 shadow-lg shadow-bts-pink/50 hover:shadow-bts-pink/70 hover:scale-105"
+          >
+            DONATE
+          </button>
           </div>
 
           <div className="md:hidden">
@@ -286,5 +298,7 @@ export default function Navbar() {
         </div>
       )}
     </nav>
+    <DonationModal isOpen={showDonationModal} onClose={() => setShowDonationModal(false)} />
+    </>
   );
 }

@@ -49,10 +49,30 @@ const BattleSchema = new mongoose.Schema({
     default: true
   },
   finalLeaderboard: [{
+    type: {
+      type: String,
+      enum: ['solo', 'team'],
+      default: 'solo'
+    },
+    // Solo player fields
     userId: mongoose.Schema.Types.ObjectId,
     username: String,
+    displayName: String,
     count: Number,
-    isCheater: Boolean
+    isCheater: Boolean,
+    // Team fields
+    teamId: mongoose.Schema.Types.ObjectId,
+    teamName: String,
+    totalScore: Number,
+    memberCount: Number,
+    // Team member details - stores individual contributions
+    members: [{
+      userId: mongoose.Schema.Types.ObjectId,
+      username: String,
+      displayName: String,
+      count: Number,
+      isCheater: Boolean
+    }]
   }],
   endedAt: Date,
   removedParticipants: [{
