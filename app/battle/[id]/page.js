@@ -151,12 +151,18 @@ export default function BattlePage({ params }) {
   };
 
   const handleEndBattle = async () => {
+    // Prevent multiple clicks
+    if (endingBattle) {
+      return;
+    }
+
     if (!confirm('Are you sure you want to end this battle? This action cannot be undone.')) {
       return;
     }
 
     try {
       setEndingBattle(true);
+
       const token = localStorage.getItem('token');
       const res = await fetch(`/api/battle/${params.id}/end`, {
         method: 'POST',
@@ -172,12 +178,27 @@ export default function BattlePage({ params }) {
         throw new Error(data.error || 'Failed to end battle');
       }
 
-      // Refresh the battle data
-      await fetchLeaderboard(params.id);
+      // Immediately update UI with the response from API
+      setBattle(prev => prev ? {
+        ...prev,
+        status: 'ended',
+        finalLeaderboard: data.battle?.finalLeaderboard || prev.finalLeaderboard
+      } : null);
+
+      // Update leaderboard with final results
+      if (data.battle?.finalLeaderboard) {
+        setLeaderboard(data.battle.finalLeaderboard);
+      }
+
       alert('Battle ended successfully!');
+
+      // Fetch fresh data after a delay to ensure DB has committed
+      setTimeout(() => {
+        fetchLeaderboard(params.id);
+        setEndingBattle(false);
+      }, 1000);
     } catch (err) {
       alert(`Error: ${err.message}`);
-    } finally {
       setEndingBattle(false);
     }
   };
@@ -626,6 +647,31 @@ export default function BattlePage({ params }) {
               )}
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Resource notice - Separate container */}
+      <div className="relative overflow-hidden rounded-xl border border-yellow-500/30 bg-gradient-to-r from-yellow-900/30 to-orange-900/30 p-6 backdrop-blur-sm animate-slide-up mt-6">
+        <div className="absolute -top-12 -left-12 h-32 w-32 rounded-full bg-yellow-500/10 blur-3xl"></div>
+        <div className="relative text-center">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <span className="text-2xl">⚡</span>
+            <h3 className="text-lg font-bold text-yellow-200">Running on limited resources</h3>
+          </div>
+          <p className="text-sm text-gray-300 mb-4">
+            Try checking your score every <span className="text-purple-300 font-bold">5 minutes</span> for updates.
+            <br />
+            Want faster updates? Consider supporting us to help upgrade the site!
+          </p>
+          <Link
+            href="https://ko-fi.com/noobsambit"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold rounded-lg transition-all shadow-lg hover:shadow-xl hover:scale-105"
+          >
+            <span>💜</span>
+            <span>Donate</span>
+          </Link>
         </div>
       </div>
 

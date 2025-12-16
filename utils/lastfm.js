@@ -217,9 +217,30 @@ export function matchTrack(scrobble, playlistTracks) {
   const scrobbleName = normalizeString(scrobble.name);
   const scrobbleArtist = normalizeString(scrobble.artist);
 
-  return playlistTracks.some(track => {
-    const trackName = track.normalizedTitle || normalizeString(track.title);
-    const trackArtist = track.normalizedArtist || normalizeString(track.artist);
-    return scrobbleName === trackName && scrobbleArtist === trackArtist;
+  // Check if playlist has tracks
+  if (!playlistTracks || playlistTracks.length === 0) {
+    console.warn('[Match Warning] Playlist has no tracks to match against');
+    return false;
+  }
+
+  const found = playlistTracks.some(track => {
+    // Defensive: normalize on-the-fly if pre-normalized fields missing
+    const trackName = track.normalizedTitle || normalizeString(track.title || '');
+    const trackArtist = track.normalizedArtist || normalizeString(track.artist || '');
+
+    const isMatch = scrobbleName === trackName && scrobbleArtist === trackArtist;
+
+    // Debug logging for troubleshooting (logs 10% of non-matches randomly)
+    if (!isMatch && Math.random() < 0.1) {
+      console.log('[Match Debug]', {
+        scrobble: { name: scrobbleName, artist: scrobbleArtist },
+        track: { name: trackName, artist: trackArtist },
+        hasNormalized: { title: !!track.normalizedTitle, artist: !!track.normalizedArtist }
+      });
+    }
+
+    return isMatch;
   });
+
+  return found;
 }

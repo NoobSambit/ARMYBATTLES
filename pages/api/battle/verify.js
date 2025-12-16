@@ -274,14 +274,9 @@ async function verifyScrobbles() {
             userId: participant._id
           });
 
-          // Determine the earliest time we should count scrobbles from
-          let countScrobblesFrom;
-
+          // Create StreamCount if it doesn't exist
+          // The createdAt timestamp will capture when user first joined (first verification after join)
           if (!streamCount) {
-            // User just joined - create StreamCount and only count future scrobbles
-            // Use current time so pre-battle scrobbles are excluded
-            countScrobblesFrom = Date.now();
-
             streamCount = await StreamCount.create({
               battleId: battle._id,
               userId: participant._id,
@@ -290,10 +285,11 @@ async function verifyScrobbles() {
               scrobbleTimestamps: [],
               teamId: null
             });
-          } else {
-            // User already has a StreamCount - use when they joined (createdAt timestamp)
-            countScrobblesFrom = streamCount.createdAt.getTime();
           }
+
+          // Always use createdAt as the join time boundary
+          // This ensures consistent behavior: scrobbles are only counted from when user joined
+          const countScrobblesFrom = streamCount.createdAt.getTime();
 
           // Only count scrobbles from AFTER the user joined
           // Use Math.max to ensure we don't count scrobbles before battle start OR before user joined
@@ -354,6 +350,9 @@ async function verifyScrobbles() {
             avgTimeBetweenScrobbles: avgTimeBetweenScrobbles.toFixed(1),
             suspiciousScrobbles,
             totalRecentTracks: recentTracks.length,
+            userJoinedAt: new Date(countScrobblesFrom).toISOString(),
+            battleStartTime: new Date(battle.startTime).toISOString(),
+            playlistTrackCount: battle.playlistTracks?.length || 0,
           });
         } // end for battle loop
 

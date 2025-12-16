@@ -126,7 +126,7 @@ export default function Dashboard() {
 
     try {
       const token = localStorage.getItem('token');
-      
+
       // Convert datetime-local values to UTC ISO strings
       // This ensures the time entered in user's local timezone is correctly stored as UTC
       const convertToUTC = (dateTimeLocal) => {
@@ -159,10 +159,17 @@ export default function Dashboard() {
         throw new Error(data.error || 'Failed to create battle');
       }
 
+      // Immediately add the new battle to the list (optimistic update)
+      if (data.battle) {
+        setBattles(prev => [data.battle, ...prev]);
+      }
+
       setSuccess('Battle created successfully!');
       setShowCreateForm(false);
       setBattleForm({ name: '', spotifyPlaylist: '', startTime: '', endTime: '' });
-      fetchBattles();
+
+      // Still fetch to ensure we have the latest data
+      setTimeout(() => fetchBattles(), 100);
     } catch (err) {
       setError(err.message);
     } finally {
