@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Modal from './Modal';
 
-export default function ScorecardModal({ battle, currentUser, isOpen, onClose }) {
+export default function ScorecardModal({ battle, currentUser, isOpen, onClose, userStats }) {
   const [copiedLink, setCopiedLink] = useState(false);
 
   if (!isOpen) return null;
@@ -21,7 +21,9 @@ export default function ScorecardModal({ battle, currentUser, isOpen, onClose })
   };
 
   const handleShareTwitter = () => {
-    const tweetText = `Just finished the ${battle.name} battle!\n\nJoin ARMYBATTLES to participate in BTS streaming battles with ARMYS worldwide\n\nWebsite: armybattles.netlify.app\nCreator: @Boy_With_Code\n\nCheck it out: ${scorecardUrl}\n\n#BTS #ARMYBattles #StreamBattles`;
+    const rank = userStats?.rank || '[RANK]';
+    const scrobbles = userStats?.scrobbles || userStats?.score || '[SCROBBLES]';
+    const tweetText = `Just finished the ${battle.name} Streaming Battle in armybattles.netlify.app!\nRanked #${rank} with ${scrobbles} scrobbles 🏆\n\nCheck it out:\n${scorecardUrl}\n\n#BTS #ARMYBattles #StreamBattles\nCreator: @Boy_With_Code`;
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
     window.open(twitterUrl, '_blank', 'width=550,height=420');
   };

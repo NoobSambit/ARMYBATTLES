@@ -47,8 +47,8 @@ export default function ScorecardPage({ params }) {
     const scorecardUrl = `${window.location.origin}/scorecard/${battleId}/${userId}`;
     const tweetText =
       scorecardData.stats.rank > 0
-        ? `Just finished the ${scorecardData.battle.name} battle! 🎵\nRanked #${scorecardData.stats.rank} with ${scorecardData.stats.score} scrobbles 🏆\n\nCheck it out: ${scorecardUrl}\n#BTS #ARMYBattles #StreamBattles`
-        : `Just finished the ${scorecardData.battle.name} battle! 🎵\n\nCheck it out: ${scorecardUrl}\n#BTS #ARMYBattles #StreamBattles`;
+        ? `Just finished the ${scorecardData.battle.name} battle! 🎵\nRanked #${scorecardData.stats.rank} with ${scorecardData.stats.score} scrobbles 🏆\n\nCheck it out:\n${scorecardUrl}\n\n#BTS #ARMYBattles #StreamBattles\nCreator: @Boy_With_Code`
+        : `Just finished the ${scorecardData.battle.name} battle! 🎵\n\nCheck it out:\n${scorecardUrl}\n\n#BTS #ARMYBattles #StreamBattles\nCreator: @Boy_With_Code`;
 
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
     window.open(twitterUrl, '_blank', 'width=550,height=420');

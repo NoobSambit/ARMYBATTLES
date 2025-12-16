@@ -37,7 +37,7 @@ export default function TeamCard({ team, rank, onClick }) {
           {/* Team Details */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <h3 className="text-sm sm:text-base md:text-xl font-bold text-gradient truncate">
+              <h3 className="text-xs sm:text-sm md:text-base font-bold text-gray-100 truncate">
                 {team.teamName}
               </h3>
               {team.isCheater && (

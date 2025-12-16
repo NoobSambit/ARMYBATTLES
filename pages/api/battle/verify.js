@@ -268,9 +268,38 @@ async function verifyScrobbles() {
         // Now process tracks for each battle this user is in
         for (const battle of participantBattles) {
 
+          // Get existing StreamCount to determine when user joined the battle
+          let streamCount = await StreamCount.findOne({
+            battleId: battle._id,
+            userId: participant._id
+          });
+
+          // Determine the earliest time we should count scrobbles from
+          let countScrobblesFrom;
+
+          if (!streamCount) {
+            // User just joined - create StreamCount and only count future scrobbles
+            // Use current time so pre-battle scrobbles are excluded
+            countScrobblesFrom = Date.now();
+
+            streamCount = await StreamCount.create({
+              battleId: battle._id,
+              userId: participant._id,
+              count: 0,
+              isCheater: false,
+              scrobbleTimestamps: [],
+              teamId: null
+            });
+          } else {
+            // User already has a StreamCount - use when they joined (createdAt timestamp)
+            countScrobblesFrom = streamCount.createdAt.getTime();
+          }
+
+          // Only count scrobbles from AFTER the user joined
+          // Use Math.max to ensure we don't count scrobbles before battle start OR before user joined
           const matchedTracks = recentTracks.filter(scrobble => {
             const isInTimeRange =
-              scrobble.timestamp >= battle.startTime.getTime() &&
+              scrobble.timestamp >= Math.max(battle.startTime.getTime(), countScrobblesFrom) &&
               scrobble.timestamp <= battle.endTime.getTime();
 
             return isInTimeRange && matchTrack(scrobble, battle.playlistTracks);
@@ -312,7 +341,7 @@ async function verifyScrobbles() {
               scrobbleTimestamps: timestamps,
               teamId: userTeam ? userTeam._id : null,
             },
-            { upsert: true }
+            { upsert: false } // Don't upsert, we already created it above if needed
           );
 
           logger.info('Scrobbles verified', {

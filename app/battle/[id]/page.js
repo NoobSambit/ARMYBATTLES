@@ -680,6 +680,7 @@ export default function BattlePage({ params }) {
         onClose={() => setScorecardModalOpen(false)}
         battle={battle}
         currentUser={currentUser}
+        userStats={leaderboard.find(entry => entry.userId === (currentUser?.id || currentUser?._id))}
       />
     </div>
   );
