@@ -151,12 +151,7 @@ async function freezeBattle(battle) {
       endedAt: new Date(),
     });
 
-    logger.info('Battle frozen', {
-      battleId: battle._id,
-      battleName: battle.name,
-      participantCount: battle.participants.length,
-      leaderboardEntries: finalLeaderboard.length
-    });
+    logger.info(`🏁 "${battle.name}" ended: ${finalLeaderboard.length} entries, ${battle.participants.length} participants`);
 
     // Socket.io removed - clients will poll for battle status updates
   } catch (error) {
@@ -178,11 +173,7 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
   // Log sharding info
   const shardingEnabled = shardId !== null;
   if (shardingEnabled) {
-    logger.info('Sharding enabled', {
-      shardId,
-      totalShards,
-      processingRange: `${shardId}/${totalShards}`
-    });
+    // Sharding enabled - removed verbose logging
   }
 
   try {
@@ -201,7 +192,7 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
     );
 
     if (upcomingToActive.modifiedCount > 0) {
-      logger.info('Battles transitioned to active', { count: upcomingToActive.modifiedCount });
+      logger.info(`🟢 ${upcomingToActive.modifiedCount} battles transitioned to active`);
     }
 
     if (isNearTimeout()) {
@@ -211,9 +202,13 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
 
     const activeBattlesToEnd = await Battle.find({ status: 'active', endTime: { $lte: now } });
 
+    if (activeBattlesToEnd.length > 0) {
+      logger.info(`🏁 Ending ${activeBattlesToEnd.length} battles`);
+    }
+
     for (const battle of activeBattlesToEnd) {
       if (isNearTimeout()) {
-        logger.warn('Timeout during battle freezing', { remaining: activeBattlesToEnd.length });
+        logger.warn(`⚠️ Timeout during battle freezing, ${activeBattlesToEnd.length} remaining`);
         break;
       }
       await freezeBattle(battle);
@@ -223,14 +218,13 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
 
     // OPTIMIZATION: Early exit if no active battles - saves Netlify function invocations
     if (activeBattles.length === 0) {
-      logger.info('No active battles, skipping verification cycle');
+      logger.info('⏸️  No active battles, skipping verification cycle');
       return { success: true, message: 'No active battles to verify', skipped: true };
     }
 
-    logger.info('Verification cycle started', {
-      time: now.toISOString(),
-      activeBattles: activeBattles.length
-    });
+    // Clean, informative logging
+    const totalParticipants = activeBattles.reduce((sum, b) => sum + b.participants.length, 0);
+    logger.info(`🔄 Starting verification: ${activeBattles.length} battles, ${totalParticipants} total participants`);
 
     // OPTIMIZATION: Deduplicate participants across battles
     // Collect all unique participants first, then fetch tracks once per user
@@ -254,10 +248,7 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
       }
     }
 
-    logger.info('Deduplication stats', {
-      totalUniqueparticipants: uniqueParticipantsMap.size,
-      totalBattles: activeBattles.length
-    });
+    // Deduplication complete - removed verbose logging
 
     // Convert to array for processing
     const participantEntries = Array.from(uniqueParticipantsMap.entries());
@@ -271,13 +262,7 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
         return index % totalShards === shardId;
       });
 
-      logger.info('Shard filtering applied', {
-        totalParticipants: participantEntries.length,
-        shardParticipants: participantsToProcess.length,
-        shardId,
-        totalShards,
-        sampleIndices: participantsToProcess.slice(0, 3).map((_, i) => i * totalShards + shardId)
-      });
+      logger.info(`Shard ${shardId}/${totalShards}: Processing ${participantsToProcess.length}/${participantEntries.length} participants`);
     }
 
     // Process each unique participant once
@@ -317,10 +302,7 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
 
         if (cachedData && (Date.now() - cachedData.timestamp) < PARTICIPANT_CACHE_TTL) {
           recentTracks = cachedData.tracks;
-          logger.info('Using cached tracks for participant', {
-            username,
-            battlesCount: participantBattles.length
-          });
+          // Using cached tracks - removed verbose logging
         } else {
           recentTracks = await getRecentTracks(
             username,
@@ -379,25 +361,7 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
 
           const count = matchedTracks.length;
           const timestamps = matchedTracks.map(t => t.timestamp);
-          const isCheater = detectCheating(timestamps, matchedTracks);
-
-          // Calculate additional statistics for monitoring
-          let avgTimeBetweenScrobbles = 0;
-          let suspiciousScrobbles = 0;
-
-          if (timestamps.length > 1) {
-            const sortedTimestamps = [...timestamps].sort((a, b) => a - b);
-            const totalDuration = sortedTimestamps[sortedTimestamps.length - 1] - sortedTimestamps[0];
-            avgTimeBetweenScrobbles = totalDuration / (sortedTimestamps.length - 1) / 1000; // seconds
-
-            // Count scrobbles that are suspiciously close together (< 30 seconds apart)
-            for (let i = 1; i < sortedTimestamps.length; i++) {
-              const timeDiff = (sortedTimestamps[i] - sortedTimestamps[i - 1]) / 1000;
-              if (timeDiff < 30) {
-                suspiciousScrobbles++;
-              }
-            }
-          }
+          const isCheater = detectCheating(timestamps);
 
           // Check if user is in a team for this battle
           const userTeam = await Team.findOne({
@@ -416,52 +380,28 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
             { upsert: false } // Don't upsert, we already created it above if needed
           );
 
-          logger.info('Scrobbles verified', {
-            battleId: battle._id,
-            userId: participant._id,
-            username: participant.username,
-            scrobblesCounted: count,
-            playlistMatches: count,
-            isCheater,
-            avgTimeBetweenScrobbles: avgTimeBetweenScrobbles.toFixed(1),
-            suspiciousScrobbles,
-            totalRecentTracks: recentTracks.length,
-            userJoinedAt: new Date(countScrobblesFrom).toISOString(),
-            battleStartTime: new Date(battle.startTime).toISOString(),
-            playlistTrackCount: battle.playlistTracks?.length || 0,
-          });
+          // Only log if cheating detected or significant count
+          if (isCheater || count > 50) {
+            logger.warn(`${participant.username}: ${count} scrobbles${isCheater ? ' [CHEATER]' : ''}`);
+          }
         } // end for battle loop
 
         participantsProcessed++;
 
       } catch (error) {
-        logger.error('Error verifying scrobbles for user', {
-          username: participant.username,
-          error: error.message
-        });
+        logger.error(`❌ Error for ${participant.username}: ${error.message}`);
         participantsProcessed++;
       }
     } // end for unique participants loop
 
-    // Now handle missing participants (users with 0 scrobbles) for each battle
-    for (const battle of activeBattles) {
-      const streamCounts = await StreamCount.find({ battleId: battle._id }).populate('userId', 'username');
-      
-      // Socket.io removed - leaderboard updates will be fetched via polling
-    }
+    // Socket.io removed - leaderboard updates will be fetched via polling
 
     const executionTime = Date.now() - startTime;
 
-    logger.info('Verification cycle completed', {
-      time: now.toISOString(),
-      executionTimeMs: executionTime,
-      participantsProcessed,
-      participantsSkipped,
-      hitTimeout: participantsSkipped > 0,
-      allParticipantsProcessed: participantsSkipped === 0,
-      shardId: shardingEnabled ? shardId : 'disabled',
-      totalShards: shardingEnabled ? totalShards : 1
-    });
+    // Comprehensive completion summary
+    const shardInfo = shardingEnabled ? ` [Shard ${shardId}/${totalShards}]` : '';
+    const status = participantsSkipped > 0 ? '⚠️' : '✅';
+    logger.info(`${status} Verification complete${shardInfo}: ${participantsProcessed}/${participantsProcessed + participantsSkipped} processed (${executionTime}ms)`);
 
     return {
       success: true,
@@ -555,10 +495,7 @@ export default async function handler(req, res) {
       });
     }
 
-    logger.info('Verification triggered by external cron', {
-      shardId: shardId !== null ? shardId : 'disabled',
-      totalShards: shardId !== null ? totalShards : 'N/A'
-    });
+    // Cron triggered - removed verbose logging
 
     const result = await verifyScrobbles(shardId, totalShards);
 

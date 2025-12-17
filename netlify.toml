@@ -7,12 +7,3 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
-
-[functions]
-  # Increase timeout for cron endpoints (max 26s on Pro, 10s on Free tier)
-  node_bundler = "esbuild"
-
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
