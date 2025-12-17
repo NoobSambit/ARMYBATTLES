@@ -1,17 +1,17 @@
-// Standalone verification script for Render.com cron jobs
+// Standalone verification script for GitHub Actions cron jobs
 // This runs outside of Next.js/Netlify serverless context with UNLIMITED timeout!
 
-import connectDB from '../utils/db.js';
-import Battle from '../models/Battle.js';
-import StreamCount from '../models/StreamCount.js';
-import Team from '../models/Team.js';
-import User from '../models/User.js';
-import { getRecentTracks, matchTrack } from '../utils/lastfm.js';
-import { logger } from '../utils/logger.js';
+const connectDB = require('../utils/db');
+const Battle = require('../models/Battle');
+const StreamCount = require('../models/StreamCount');
+const Team = require('../models/Team');
+const User = require('../models/User');
+const { getRecentTracks, matchTrack } = require('../utils/lastfm');
+const { logger } = require('../utils/logger');
 
 // Get shard info from command line arguments
 const shardId = parseInt(process.argv[2] || '0', 10);
-const totalShards = parseInt(process.argv[3] || '4', 10);
+const totalShards = parseInt(process.argv[3] || '1', 10);
 
 console.log(`Starting verification: Shard ${shardId}/${totalShards}`);
 
@@ -168,12 +168,6 @@ async function verifyScrobbles() {
     const totalParticipants = activeBattles.reduce((sum, b) => sum + b.participants.length, 0);
     logger.info(`🔄 Starting verification: ${activeBattles.length} battles, ${totalParticipants} total participants`);
 
-    // Early exit optimization for empty shards
-    if (totalParticipants < totalShards && shardId >= totalParticipants) {
-      logger.info(`⏸️  Shard ${shardId} has no participants to process (total: ${totalParticipants})`);
-      return { success: true, message: 'Shard has no participants', skipped: true };
-    }
-
     // Deduplicate participants
     const uniqueParticipantsMap = new Map();
 
@@ -197,14 +191,16 @@ async function verifyScrobbles() {
 
     const participantEntries = Array.from(uniqueParticipantsMap.entries());
 
-    // Apply sharding
-    const participantsToProcess = participantEntries.filter((_, index) => {
-      return index % totalShards === shardId;
-    });
+    // Apply sharding (if totalShards > 1)
+    let participantsToProcess = participantEntries;
+    if (totalShards > 1) {
+      participantsToProcess = participantEntries.filter((_, index) => {
+        return index % totalShards === shardId;
+      });
+      logger.info(`Shard ${shardId}/${totalShards}: Processing ${participantsToProcess.length}/${participantEntries.length} participants`);
+    }
 
-    logger.info(`Shard ${shardId}/${totalShards}: Processing ${participantsToProcess.length}/${participantEntries.length} participants`);
-
-    // Round-robin rotation
+    // Round-robin rotation (no timeout needed with GitHub Actions!)
     const currentSeconds = Math.floor(Date.now() / 1000);
     const rotationSeed = Math.floor(currentSeconds / 10);
     const rotationOffset = participantsToProcess.length > 0 ? rotationSeed % participantsToProcess.length : 0;
@@ -308,7 +304,8 @@ async function verifyScrobbles() {
     }
 
     const executionTime = Date.now() - startTime;
-    logger.info(`✅ Verification complete [Shard ${shardId}/${totalShards}]: ${participantsProcessed}/${participantsToProcess.length} processed (${executionTime}ms)`);
+    const shardInfo = totalShards > 1 ? ` [Shard ${shardId}/${totalShards}]` : '';
+    logger.info(`✅ Verification complete${shardInfo}: ${participantsProcessed}/${participantsToProcess.length} processed (${executionTime}ms)`);
 
     return {
       success: true,
