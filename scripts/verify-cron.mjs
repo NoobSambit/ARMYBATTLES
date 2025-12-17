@@ -1,19 +1,20 @@
 // Standalone verification script for GitHub Actions cron jobs
 // This runs outside of Next.js/Netlify serverless context with UNLIMITED timeout!
 
-import connectDB from '../utils/db.js';
-import Battle from '../models/Battle.js';
-import StreamCount from '../models/StreamCount.js';
-import Team from '../models/Team.js';
-import User from '../models/User.js';
-import { getRecentTracks, matchTrack } from '../utils/lastfm.js';
-import { logger } from '../utils/logger.js';
-
 // Get shard info from command line arguments
 const shardId = parseInt(process.argv[2] || '0', 10);
 const totalShards = parseInt(process.argv[3] || '1', 10);
 
 console.log(`Starting verification: Shard ${shardId}/${totalShards}`);
+
+// Dynamic imports to handle Next.js module system
+const connectDB = (await import('../utils/db.js')).default;
+const Battle = (await import('../models/Battle.js')).default;
+const StreamCount = (await import('../models/StreamCount.js')).default;
+const Team = (await import('../models/Team.js')).default;
+const User = (await import('../models/User.js')).default;
+const { getRecentTracks, matchTrack } = await import('../utils/lastfm.js');
+const { logger } = await import('../utils/logger.js');
 
 // Cache for participant tracks (same as verify.js)
 const participantTrackCache = new Map();
