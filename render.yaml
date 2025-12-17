@@ -1,0 +1,64 @@
+services:
+  # Main Next.js application (stays on Netlify)
+  # This config is just for documentation - keep deploying to Netlify as usual
+
+  # Verification Cron Job - Runs on Render.com
+  - type: cron
+    name: armybattles-verify-shard-0
+    schedule: "0,4,8,12,16,20,24,28,32,36,40,44,48,52,56 * * * *"
+    buildCommand: npm ci
+    startCommand: node scripts/verify-cron.js 0 4
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: LASTFM_API_KEY
+        sync: false
+      - key: LASTFM_SHARED_SECRET
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+
+  - type: cron
+    name: armybattles-verify-shard-1
+    schedule: "1,5,9,13,17,21,25,29,33,37,41,45,49,53,57 * * * *"
+    buildCommand: npm ci
+    startCommand: node scripts/verify-cron.js 1 4
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: LASTFM_API_KEY
+        sync: false
+      - key: LASTFM_SHARED_SECRET
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+
+  - type: cron
+    name: armybattles-verify-shard-2
+    schedule: "2,6,10,14,18,22,26,30,34,38,42,46,50,54,58 * * * *"
+    buildCommand: npm ci
+    startCommand: node scripts/verify-cron.js 2 4
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: LASTFM_API_KEY
+        sync: false
+      - key: LASTFM_SHARED_SECRET
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+
+  - type: cron
+    name: armybattles-verify-shard-3
+    schedule: "3,7,11,15,19,23,27,31,35,39,43,47,51,55,59 * * * *"
+    buildCommand: npm ci
+    startCommand: node scripts/verify-cron.js 3 4
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: LASTFM_API_KEY
+        sync: false
+      - key: LASTFM_SHARED_SECRET
+        sync: false
+      - key: CRON_SECRET
+        sync: false
