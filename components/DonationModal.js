@@ -62,18 +62,11 @@ export default function DonationModal({ isOpen, onClose }) {
       },
       onError: (err) => {
         console.error('PayPal error:', err);
-        alert('An error occurred. Please try again or use Ko-fi/UPI.');
+        alert('An error occurred. Please try again or use Ko-fi.');
       }
     }).render(paypalRef.current);
   };
 
-  const handleUPIDonate = () => {
-    const upiId = process.env.NEXT_PUBLIC_UPI_ID;
-    if (upiId) {
-      const upiUrl = `upi://pay?pa=${upiId}&pn=ARMYBATTLES`;
-      window.location.href = upiUrl;
-    }
-  };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Support ARMYBATTLES" size="md">
@@ -181,26 +174,6 @@ export default function DonationModal({ isOpen, onClose }) {
               <div ref={paypalRef} className="paypal-buttons-container"></div>
             </div>
 
-            {/* UPI (India) */}
-            {process.env.NEXT_PUBLIC_UPI_ID && (
-              <button
-                onClick={handleUPIDonate}
-                className="w-full py-4 px-4 rounded-lg border-2 border-border-light hover:border-bts-purple bg-panel-hover hover:bg-panel-elevated transition-all duration-200 flex items-center justify-between group"
-              >
-                <div className="flex items-center gap-3">
-                  <svg className="w-6 h-6 text-orange-500" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M7.5 5h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zm4.5 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/>
-                  </svg>
-                  <div className="text-left">
-                    <div className="font-semibold text-white">UPI</div>
-                    <div className="text-xs text-gray-200">India - Google Pay, PhonePe, Paytm</div>
-                  </div>
-                </div>
-                <svg className="w-5 h-5 text-gray-300 group-hover:text-bts-purple group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </button>
-            )}
           </div>
 
           <p className="text-xs text-gray-200 text-center pt-2">
