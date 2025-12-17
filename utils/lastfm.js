@@ -228,18 +228,7 @@ export function matchTrack(scrobble, playlistTracks) {
     const trackName = track.normalizedTitle || normalizeString(track.title || '');
     const trackArtist = track.normalizedArtist || normalizeString(track.artist || '');
 
-    const isMatch = scrobbleName === trackName && scrobbleArtist === trackArtist;
-
-    // Debug logging for troubleshooting (logs 10% of non-matches randomly)
-    if (!isMatch && Math.random() < 0.1) {
-      console.log('[Match Debug]', {
-        scrobble: { name: scrobbleName, artist: scrobbleArtist },
-        track: { name: trackName, artist: trackArtist },
-        hasNormalized: { title: !!track.normalizedTitle, artist: !!track.normalizedArtist }
-      });
-    }
-
-    return isMatch;
+    return scrobbleName === trackName && scrobbleArtist === trackArtist;
   });
 
   return found;
