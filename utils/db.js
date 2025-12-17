@@ -6,7 +6,7 @@ if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
 
-async function connectDB(retries = 5, delay = 1000) {
+async function connectDB(retries = 2, delay = 500) {
   // Check if connection exists and is still ready (important for serverless)
   if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
@@ -37,9 +37,10 @@ async function connectDB(retries = 5, delay = 1000) {
     const opts = {
       bufferCommands: false,
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 10000, // Increased to 10s
-      socketTimeoutMS: 45000,
-      connectTimeoutMS: 10000, // Added connect timeout
+      serverSelectionTimeoutMS: 5000, // Reduced to 5s for faster failures
+      socketTimeoutMS: 20000, // Reduced to 20s
+      connectTimeoutMS: 5000, // Reduced to 5s for faster connection
+      minPoolSize: 1, // Keep at least 1 connection alive
     };
 
     cached.promise = (async () => {

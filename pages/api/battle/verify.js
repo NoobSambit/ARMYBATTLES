@@ -24,7 +24,7 @@ const PARTICIPANT_CACHE_TTL = 90000; // 90 seconds
  * 2. Suspicious skip pattern: 5+ songs in 30 seconds (avg <6 sec/song - likely skipping)
  * 3. Unrealistic tempo: Average time between scrobbles < 30 seconds over 10+ songs
  */
-function detectCheating(timestamps, tracks = []) {
+function detectCheating(timestamps) {
   if (timestamps.length < 5) return false;
 
   const sortedTimestamps = [...timestamps].sort((a, b) => a - b);
@@ -164,9 +164,34 @@ async function freezeBattle(battle) {
   }
 }
 
-async function verifyScrobbles() {
+/**
+ * Shard-based verification for parallel processing
+ * @param {number} shardId - The shard number (0, 1, 2, or 3)
+ * @param {number} totalShards - Total number of shards (default: 4)
+ */
+async function verifyScrobbles(shardId = null, totalShards = 4) {
+  const startTime = Date.now();
+  const MAX_EXECUTION_TIME = 9000; // 9 seconds for Netlify free tier (10s limit - 1s buffer)
+
+  const isNearTimeout = () => (Date.now() - startTime) > MAX_EXECUTION_TIME;
+
+  // Log sharding info
+  const shardingEnabled = shardId !== null;
+  if (shardingEnabled) {
+    logger.info('Sharding enabled', {
+      shardId,
+      totalShards,
+      processingRange: `${shardId}/${totalShards}`
+    });
+  }
+
   try {
     await connectDB();
+
+    if (isNearTimeout()) {
+      logger.warn('Timeout during DB connection');
+      return { success: false, message: 'Timeout during database connection', timeout: true };
+    }
 
     const now = new Date();
 
@@ -179,9 +204,18 @@ async function verifyScrobbles() {
       logger.info('Battles transitioned to active', { count: upcomingToActive.modifiedCount });
     }
 
+    if (isNearTimeout()) {
+      logger.warn('Timeout after battle transitions');
+      return { success: true, message: 'Battles transitioned but verification skipped due to timeout', partialSuccess: true };
+    }
+
     const activeBattlesToEnd = await Battle.find({ status: 'active', endTime: { $lte: now } });
 
     for (const battle of activeBattlesToEnd) {
+      if (isNearTimeout()) {
+        logger.warn('Timeout during battle freezing', { remaining: activeBattlesToEnd.length });
+        break;
+      }
       await freezeBattle(battle);
     }
 
@@ -225,8 +259,50 @@ async function verifyScrobbles() {
       totalBattles: activeBattles.length
     });
 
+    // Convert to array for processing
+    const participantEntries = Array.from(uniqueParticipantsMap.entries());
+
+    // Apply sharding if enabled
+    let participantsToProcess = participantEntries;
+
+    if (shardingEnabled) {
+      // Calculate which participants this shard should handle
+      participantsToProcess = participantEntries.filter((_, index) => {
+        return index % totalShards === shardId;
+      });
+
+      logger.info('Shard filtering applied', {
+        totalParticipants: participantEntries.length,
+        shardParticipants: participantsToProcess.length,
+        shardId,
+        totalShards,
+        sampleIndices: participantsToProcess.slice(0, 3).map((_, i) => i * totalShards + shardId)
+      });
+    }
+
     // Process each unique participant once
-    for (const [username, data] of uniqueParticipantsMap.entries()) {
+    let participantsProcessed = 0;
+    let participantsSkipped = 0;
+
+    for (let i = 0; i < participantsToProcess.length; i++) {
+      // Check if we're approaching timeout
+      if (isNearTimeout()) {
+        participantsSkipped = participantsToProcess.length - participantsProcessed;
+
+        logger.warn('Timeout approaching - stopping processing', {
+          processed: participantsProcessed,
+          skipped: participantsSkipped,
+          total: participantsToProcess.length,
+          shardId: shardingEnabled ? shardId : 'none',
+          note: shardingEnabled
+            ? 'Skipped participants will be retried in next cycle'
+            : 'Consider enabling sharding for better performance'
+        });
+        break;
+      }
+
+      const [username, data] = participantsToProcess[i];
+
       const participant = data.user;
       const participantBattles = data.battles;
 
@@ -356,11 +432,14 @@ async function verifyScrobbles() {
           });
         } // end for battle loop
 
+        participantsProcessed++;
+
       } catch (error) {
         logger.error('Error verifying scrobbles for user', {
           username: participant.username,
           error: error.message
         });
+        participantsProcessed++;
       }
     } // end for unique participants loop
 
@@ -368,20 +447,39 @@ async function verifyScrobbles() {
     for (const battle of activeBattles) {
       const streamCounts = await StreamCount.find({ battleId: battle._id }).populate('userId', 'username');
       
-      const participantIds = battle.participants.map(p => p.toString());
-      const existingUserIds = streamCounts.map(sc => sc.userId._id.toString());
-      
-      const missingParticipants = await User.find({
-        _id: { $in: participantIds.filter(id => !existingUserIds.includes(id)) }
-      });
-
       // Socket.io removed - leaderboard updates will be fetched via polling
     }
 
-    logger.info('Verification cycle completed', { time: now.toISOString() });
+    const executionTime = Date.now() - startTime;
+
+    logger.info('Verification cycle completed', {
+      time: now.toISOString(),
+      executionTimeMs: executionTime,
+      participantsProcessed,
+      participantsSkipped,
+      hitTimeout: participantsSkipped > 0,
+      allParticipantsProcessed: participantsSkipped === 0,
+      shardId: shardingEnabled ? shardId : 'disabled',
+      totalShards: shardingEnabled ? totalShards : 1
+    });
+
+    return {
+      success: true,
+      executionTimeMs: executionTime,
+      participantsProcessed,
+      participantsSkipped,
+      partialSuccess: participantsSkipped > 0,
+      allComplete: participantsSkipped === 0,
+      shardId: shardingEnabled ? shardId : null,
+      totalShards: shardingEnabled ? totalShards : null
+    };
 
   } catch (error) {
     logger.error('Verification error', { error: error.message, stack: error.stack });
+    return {
+      success: false,
+      error: error.message
+    };
   }
 }
 
@@ -389,6 +487,15 @@ async function verifyScrobbles() {
  * Netlify-compatible verification endpoint
  * Designed to be called by an external cron service every 2 minutes
  * No setInterval - each invocation performs one verification cycle
+ *
+ * Query Parameters:
+ * - shard: (optional) Shard ID for parallel processing (0, 1, 2, 3...)
+ * - totalShards: (optional) Total number of shards (default: 4)
+ *
+ * Examples:
+ * - POST /api/battle/verify - Process all participants (no sharding)
+ * - POST /api/battle/verify?shard=0&totalShards=4 - Process shard 0 of 4
+ * - POST /api/battle/verify?shard=1&totalShards=4 - Process shard 1 of 4
  */
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -406,7 +513,7 @@ export default async function handler(req, res) {
       expectedHeader: 'x-cron-secret',
       hint: authHeader ? 'Header value mismatch' : 'Missing x-cron-secret header'
     });
-    return res.status(401).json({ 
+    return res.status(401).json({
       error: 'Unauthorized',
       message: 'Missing or invalid x-cron-secret header. Please configure your cron service to send the x-cron-secret header with your CRON_SECRET value.',
       hint: 'If using cron-job.org, add a custom header in Advanced Settings: Header Name: x-cron-secret, Header Value: [your CRON_SECRET]'
@@ -414,13 +521,51 @@ export default async function handler(req, res) {
   }
 
   try {
-    logger.info('Verification triggered by external cron');
+    // Parse shard parameters from query string
+    const shardIdParam = req.query.shard;
+    const totalShardsParam = req.query.totalShards;
 
-    await verifyScrobbles();
+    let shardId = null;
+    let totalShards = 4;
+
+    if (shardIdParam !== undefined) {
+      shardId = parseInt(shardIdParam, 10);
+      if (isNaN(shardId) || shardId < 0) {
+        return res.status(400).json({
+          error: 'Invalid shard parameter',
+          message: 'shard must be a non-negative integer'
+        });
+      }
+    }
+
+    if (totalShardsParam !== undefined) {
+      totalShards = parseInt(totalShardsParam, 10);
+      if (isNaN(totalShards) || totalShards < 1) {
+        return res.status(400).json({
+          error: 'Invalid totalShards parameter',
+          message: 'totalShards must be a positive integer'
+        });
+      }
+    }
+
+    if (shardId !== null && shardId >= totalShards) {
+      return res.status(400).json({
+        error: 'Invalid shard configuration',
+        message: `shard (${shardId}) must be less than totalShards (${totalShards})`
+      });
+    }
+
+    logger.info('Verification triggered by external cron', {
+      shardId: shardId !== null ? shardId : 'disabled',
+      totalShards: shardId !== null ? totalShards : 'N/A'
+    });
+
+    const result = await verifyScrobbles(shardId, totalShards);
 
     res.status(200).json({
       message: 'Verification completed successfully',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      ...result
     });
   } catch (error) {
     logger.error('Verification handler error', { error: error.message });
