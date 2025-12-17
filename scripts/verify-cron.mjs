@@ -1,13 +1,13 @@
 // Standalone verification script for GitHub Actions cron jobs
 // This runs outside of Next.js/Netlify serverless context with UNLIMITED timeout!
 
-const connectDB = require('../utils/db');
-const Battle = require('../models/Battle');
-const StreamCount = require('../models/StreamCount');
-const Team = require('../models/Team');
-const User = require('../models/User');
-const { getRecentTracks, matchTrack } = require('../utils/lastfm');
-const { logger } = require('../utils/logger');
+import connectDB from '../utils/db.js';
+import Battle from '../models/Battle.js';
+import StreamCount from '../models/StreamCount.js';
+import Team from '../models/Team.js';
+import User from '../models/User.js';
+import { getRecentTracks, matchTrack } from '../utils/lastfm.js';
+import { logger } from '../utils/logger.js';
 
 // Get shard info from command line arguments
 const shardId = parseInt(process.argv[2] || '0', 10);

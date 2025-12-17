@@ -26,7 +26,7 @@ jobs:
         run: npm ci
 
       - name: Run verification script (NO SHARDING - unlimited time!)
-        run: node scripts/verify-cron.js 0 1
+        run: node scripts/verify-cron.mjs 0 1
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
