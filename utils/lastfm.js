@@ -128,8 +128,9 @@ export async function getRecentTracks(username, fromTimestamp, toTimestamp) {
         format: 'json',
         from: Math.floor(fromTimestamp / 1000),
         to: Math.floor(toTimestamp / 1000),
-        limit: 200,
+        limit: 100, // Reduced from 200 to prevent timeouts
       },
+      timeout: 3000, // 3 second timeout for Last.fm API
     });
 
     if (!response.data.recenttracks || !response.data.recenttracks.track) {

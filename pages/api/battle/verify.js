@@ -226,8 +226,29 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
     const totalParticipants = activeBattles.reduce((sum, b) => sum + b.participants.length, 0);
     logger.info(`🔄 Starting verification: ${activeBattles.length} battles, ${totalParticipants} total participants`);
 
+    // OPTIMIZATION: Skip shard if it has no participants to process
+    // This saves Netlify invocations when using many shards with few participants
+    if (shardingEnabled && totalParticipants < totalShards) {
+      // If we have fewer participants than shards, some shards will be empty
+      // Example: 10 participants, 16 shards → shards 10-15 have nothing to do
+      if (shardId >= totalParticipants) {
+        logger.info(`⏸️  Shard ${shardId} has no participants to process (total: ${totalParticipants})`);
+        return {
+          success: true,
+          message: 'Shard has no participants',
+          skipped: true,
+          shardId,
+          totalShards,
+          totalParticipants
+        };
+      }
+    }
+
     // OPTIMIZATION: Deduplicate participants across battles
     // Collect all unique participants first, then fetch tracks once per user
+    // NOTE: Since users can only join one active/upcoming battle at a time (enforced in join.js),
+    // each user will typically only have 1 battle in their battles array. This deduplication
+    // is kept for backward compatibility and edge cases.
     const uniqueParticipantsMap = new Map(); // username -> { user, battles: [battleData] }
 
     for (const battle of activeBattles) {
@@ -265,6 +286,24 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
       logger.info(`Shard ${shardId}/${totalShards}: Processing ${participantsToProcess.length}/${participantEntries.length} participants`);
     }
 
+    // ROUND-ROBIN ROTATION: Rotate starting position based on current time
+    // This ensures different users get priority each cycle, preventing starvation
+    // Use seconds/10 to get a different offset every ~10 seconds (faster rotation than minutes)
+    // Example with 18 participants:
+    // Cycle 1 (time=1000s): offset = 100 % 18 = 10, process [10,11,...,17,0,1,...,9]
+    // Cycle 2 (time=1240s): offset = 124 % 18 = 16, process [16,17,0,1,...,15]
+    // Cycle 3 (time=1480s): offset = 148 % 18 = 4,  process [4,5,6,...,17,0,1,2,3]
+    const currentSeconds = Math.floor(Date.now() / 1000);
+    const rotationSeed = Math.floor(currentSeconds / 10); // Changes every 10 seconds
+    const rotationOffset = participantsToProcess.length > 0 ? rotationSeed % participantsToProcess.length : 0;
+
+    if (rotationOffset > 0) {
+      participantsToProcess = [
+        ...participantsToProcess.slice(rotationOffset),
+        ...participantsToProcess.slice(0, rotationOffset)
+      ];
+    }
+
     // Process each unique participant once
     let participantsProcessed = 0;
     let participantsSkipped = 0;
@@ -291,12 +330,17 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
       const participant = data.user;
       const participantBattles = data.battles;
 
+      const participantStartTime = Date.now();
+      const PARTICIPANT_TIMEOUT = 2500; // 2.5 seconds max per participant
+
       try {
         // Find earliest start time across all battles this user is in
         const earliestStartTime = Math.min(...participantBattles.map(b => b.startTime.getTime()));
 
         // OPTIMIZATION: Check cache for participant tracks
-        const cacheKey = `${username}-${earliestStartTime}`;
+        // Include battle IDs in cache key to prevent cross-battle contamination
+        const battleIds = participantBattles.map(b => b._id.toString()).sort().join(',');
+        const cacheKey = `${username}-${earliestStartTime}-${battleIds}`;
         const cachedData = participantTrackCache.get(cacheKey);
         let recentTracks;
 
@@ -304,11 +348,24 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
           recentTracks = cachedData.tracks;
           // Using cached tracks - removed verbose logging
         } else {
-          recentTracks = await getRecentTracks(
+          // Wrap Last.fm fetch with timeout
+          const fetchPromise = getRecentTracks(
             username,
             earliestStartTime,
             now.getTime()
           );
+
+          let timeoutId;
+          const timeoutPromise = new Promise((_, reject) => {
+            timeoutId = setTimeout(() => reject(new Error('Participant processing timeout')), PARTICIPANT_TIMEOUT);
+          });
+
+          try {
+            recentTracks = await Promise.race([fetchPromise, timeoutPromise]);
+          } finally {
+            // Clear timeout to prevent memory leak
+            if (timeoutId) clearTimeout(timeoutId);
+          }
 
           // Cache the tracks
           participantTrackCache.set(cacheKey, {
@@ -389,8 +446,14 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
         participantsProcessed++;
 
       } catch (error) {
-        logger.error(`❌ Error for ${participant.username}: ${error.message}`);
-        participantsProcessed++;
+        // Skip participant if they timeout or error
+        if (error.message === 'Participant processing timeout') {
+          logger.warn(`⏱️ ${participant.username}: Skipped (timeout)`);
+          participantsSkipped++;
+        } else {
+          logger.error(`❌ Error for ${participant.username}: ${error.message}`);
+          participantsProcessed++; // Count errors as processed
+        }
       }
     } // end for unique participants loop
 

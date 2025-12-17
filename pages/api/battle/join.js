@@ -34,6 +34,26 @@ async function handler(req, res) {
       return res.status(400).json({ error: 'This battle has already ended' });
     }
 
+    // Check if user is already in any active or upcoming battle
+    const existingBattle = await Battle.findOne({
+      participants: req.userId,
+      status: { $in: ['upcoming', 'active'] }
+    });
+
+    if (existingBattle && existingBattle._id.toString() !== battleId) {
+      return res.status(400).json({
+        error: 'You are already participating in another battle',
+        currentBattle: {
+          id: existingBattle._id,
+          name: existingBattle.name,
+          status: existingBattle.status,
+          startTime: existingBattle.startTime,
+          endTime: existingBattle.endTime
+        },
+        message: 'Please wait for your current battle to end before joining a new one'
+      });
+    }
+
     const result = await Battle.findByIdAndUpdate(
       battleId,
       { $addToSet: { participants: req.userId } },
