@@ -1,0 +1,48 @@
+name: Full Sync Individual User
+
+on:
+  workflow_dispatch:
+    inputs:
+      battleId:
+        description: 'Battle ID (MongoDB ObjectId)'
+        required: true
+        type: string
+      userId:
+        description: 'User ID (MongoDB ObjectId)'
+        required: true
+        type: string
+
+jobs:
+  full-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run full sync script
+        run: node scripts/full-sync.mjs "${{ github.event.inputs.battleId }}" "${{ github.event.inputs.userId }}"
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_SHARED_SECRET: ${{ secrets.LASTFM_SHARED_SECRET }}
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-sync-logs-${{ github.event.inputs.userId }}
+          path: |
+            *.log
+            logs/
+          retention-days: 3

@@ -37,6 +37,11 @@ export default function BattlePage({ params }) {
   const [selectedParticipant, setSelectedParticipant] = useState(null);
   const [scorecardModalOpen, setScorecardModalOpen] = useState(false);
 
+  // Sync state
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncError, setSyncError] = useState('');
+  const [syncSuccess, setSyncSuccess] = useState('');
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
@@ -203,6 +208,80 @@ export default function BattlePage({ params }) {
     }
   };
 
+  const handleQuickSync = async () => {
+    try {
+      setSyncLoading(true);
+      setSyncError('');
+      setSyncSuccess('');
+
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/battle/sync/quick`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ battleId: params.id }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 429) {
+          throw new Error(data.message || 'Rate limited. Wait before syncing again.');
+        }
+        throw new Error(data.error || 'Sync failed');
+      }
+
+      setSyncSuccess(`Synced ${data.count} scrobbles!`);
+      setTimeout(() => {
+        fetchLeaderboard(params.id);
+        setSyncSuccess('');
+      }, 2000);
+
+    } catch (err) {
+      setSyncError(err.message);
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
+  const handleFullSync = async () => {
+    if (!confirm('Full sync may take 2-3 minutes. Continue?')) return;
+
+    try {
+      setSyncLoading(true);
+      setSyncError('');
+      setSyncSuccess('');
+
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/battle/sync/trigger-full`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ battleId: params.id }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 429) {
+          throw new Error(data.message || 'Rate limited.');
+        }
+        throw new Error(data.error || 'Failed to trigger full sync');
+      }
+
+      setSyncSuccess('Full sync initiated! Refresh in 2-3 minutes.');
+
+    } catch (err) {
+      setSyncError(err.message);
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
   if (error) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -338,6 +417,34 @@ export default function BattlePage({ params }) {
                 <span>View Scorecard</span>
               </button>
             )}
+            {userInBattle && battle.status === 'active' && (
+              <>
+                <button
+                  onClick={handleQuickSync}
+                  disabled={syncLoading}
+                  className="px-4 py-3 rounded-lg font-bold transition-all duration-200 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed border border-blue-500/50 shadow-lg hover:shadow-xl hover:scale-105 disabled:hover:scale-100 flex items-center gap-2 text-sm sm:text-base"
+                  title="Sync up to 800 recent scrobbles (~5 seconds)"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span className="hidden sm:inline">{syncLoading ? 'Syncing...' : 'Quick Sync'}</span>
+                  <span className="sm:hidden">{syncLoading ? '...' : 'Quick'}</span>
+                </button>
+                <button
+                  onClick={handleFullSync}
+                  disabled={syncLoading}
+                  className="px-4 py-3 rounded-lg font-bold transition-all duration-200 bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed border border-purple-500/50 shadow-lg hover:shadow-xl hover:scale-105 disabled:hover:scale-100 flex items-center gap-2 text-sm sm:text-base"
+                  title="Sync all scrobbles (may take 2-3 minutes)"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                  </svg>
+                  <span className="hidden sm:inline">{syncLoading ? 'Syncing...' : 'Full Sync'}</span>
+                  <span className="sm:hidden">{syncLoading ? '...' : 'Full'}</span>
+                </button>
+              </>
+            )}
             {isHost && (
               <>
                 {battle.status !== 'ended' && (
@@ -364,6 +471,34 @@ export default function BattlePage({ params }) {
         </div>
         <div className="h-1 w-32 bg-purple-600 rounded-full mb-2" />
       </div>
+
+      {/* Sync Status Messages */}
+      {(syncError || syncSuccess) && (
+        <div className={`mb-6 p-4 rounded-lg border ${
+          syncError
+            ? 'bg-red-500/10 border-red-500/25 text-red-300'
+            : 'bg-green-500/10 border-green-500/25 text-green-300'
+        } animate-slide-up`}>
+          <div className="flex items-center gap-2">
+            {syncError && (
+              <>
+                <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <span className="font-semibold">{syncError}</span>
+              </>
+            )}
+            {syncSuccess && (
+              <>
+                <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span className="font-semibold">{syncSuccess}</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Stats cards */}
       <div className="grid grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-10">

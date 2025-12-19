@@ -201,23 +201,11 @@ async function verifyScrobbles() {
       logger.info(`Shard ${shardId}/${totalShards}: Processing ${participantsToProcess.length}/${participantEntries.length} participants`);
     }
 
-    // Round-robin rotation (no timeout needed with GitHub Actions!)
-    const currentSeconds = Math.floor(Date.now() / 1000);
-    const rotationSeed = Math.floor(currentSeconds / 10);
-    const rotationOffset = participantsToProcess.length > 0 ? rotationSeed % participantsToProcess.length : 0;
-
-    let rotatedParticipants = participantsToProcess;
-    if (rotationOffset > 0) {
-      rotatedParticipants = [
-        ...participantsToProcess.slice(rotationOffset),
-        ...participantsToProcess.slice(0, rotationOffset)
-      ];
-    }
-
     // Process participants with NO TIMEOUT LIMIT!
+    // No round-robin needed - GitHub Actions has no timeout constraints
     let participantsProcessed = 0;
 
-    for (const [username, data] of rotatedParticipants) {
+    for (const [username, data] of participantsToProcess) {
       const participant = data.user;
       const participantBattles = data.battles;
 
@@ -232,7 +220,19 @@ async function verifyScrobbles() {
         if (cachedData && (Date.now() - cachedData.timestamp) < PARTICIPANT_CACHE_TTL) {
           recentTracks = cachedData.tracks;
         } else {
-          recentTracks = await getRecentTracks(username, earliestStartTime, now.getTime());
+          // GitHub Actions: Use 30-second timeout per request, no page limit, reduced delay
+          const fetchStartTime = Date.now();
+          recentTracks = await getRecentTracks(username, earliestStartTime, now.getTime(), {
+            timeout: 30000,
+            maxPages: null, // Fetch ALL pages (no limit)
+            delayBetweenRequests: 100 // Reduce delay from 200ms to 100ms for faster fetching
+          });
+          const fetchDuration = Date.now() - fetchStartTime;
+
+          // Log if fetching took unusually long or returned many tracks
+          if (fetchDuration > 5000 || recentTracks.length > 200) {
+            logger.info(`${username}: Fetched ${recentTracks.length} tracks in ${fetchDuration}ms`);
+          }
 
           participantTrackCache.set(cacheKey, {
             tracks: recentTracks,
@@ -281,6 +281,8 @@ async function verifyScrobbles() {
             members: participant._id
           });
 
+          const previousCount = streamCount.count;
+
           await StreamCount.findOneAndUpdate(
             { battleId: battle._id, userId: participant._id },
             {
@@ -292,12 +294,23 @@ async function verifyScrobbles() {
             { upsert: false }
           );
 
+          // Log high-count, cheating, or significant changes
           if (isCheater || count > 50) {
             logger.warn(`${participant.username}: ${count} scrobbles${isCheater ? ' [CHEATER]' : ''}`);
+          }
+
+          // Warn if count stayed exactly at 100 (potential pagination bug indicator)
+          if (previousCount === 100 && count === 100 && recentTracks.length > 100) {
+            logger.warn(`⚠️ ${participant.username}: Stuck at 100 scrobbles (${recentTracks.length} tracks fetched)`);
           }
         }
 
         participantsProcessed++;
+
+        // Log progress every 10 users
+        if (participantsProcessed % 10 === 0 || participantsProcessed === participantsToProcess.length) {
+          logger.info(`Progress: ${participantsProcessed}/${participantsToProcess.length} participants processed`);
+        }
 
       } catch (error) {
         logger.error(`❌ Error for ${participant.username}: ${error.message}`);

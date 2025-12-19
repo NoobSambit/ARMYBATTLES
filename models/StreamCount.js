@@ -26,7 +26,21 @@ const StreamCountSchema = new mongoose.Schema({
   },
   scrobbleTimestamps: [{
     type: Number
-  }]
+  }],
+  lastSyncedAt: {
+    type: Date,
+    default: null
+  },
+  lastSyncType: {
+    type: String,
+    enum: ['quick', 'full', null],
+    default: null
+  },
+  lastSyncedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  }
 }, {
   timestamps: true
 });

@@ -330,8 +330,7 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
       const participant = data.user;
       const participantBattles = data.battles;
 
-      const participantStartTime = Date.now();
-      const PARTICIPANT_TIMEOUT = 2500; // 2.5 seconds max per participant
+      const PARTICIPANT_TIMEOUT = 4000; // 4 seconds max per participant (increased for multi-page fetches)
 
       try {
         // Find earliest start time across all battles this user is in
@@ -349,10 +348,15 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
           // Using cached tracks - removed verbose logging
         } else {
           // Wrap Last.fm fetch with timeout
+          // Use faster settings for serverless: 5s per request, 100ms delay between pages
           const fetchPromise = getRecentTracks(
             username,
             earliestStartTime,
-            now.getTime()
+            now.getTime(),
+            {
+              timeout: 5000, // 5 seconds per Last.fm API request (vs default 3s)
+              delayBetweenRequests: 100 // 100ms between pages (vs default 200ms)
+            }
           );
 
           let timeoutId;
