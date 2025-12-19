@@ -20,49 +20,6 @@ const { logger } = await import('../utils/logger.js');
 const participantTrackCache = new Map();
 const PARTICIPANT_CACHE_TTL = 90000; // 90 seconds
 
-// Import cheating detection function
-function detectCheating(timestamps) {
-  if (timestamps.length < 5) return false;
-
-  const sortedTimestamps = [...timestamps].sort((a, b) => a - b);
-
-  // Rule 1: Detect 11+ scrobbles within 1 minute window
-  for (let i = 0; i <= sortedTimestamps.length - 11; i++) {
-    const windowStart = sortedTimestamps[i];
-    const windowEnd = sortedTimestamps[i + 10];
-    const windowDuration = (windowEnd - windowStart) / 1000 / 60;
-
-    if (windowDuration <= 1) {
-      return true;
-    }
-  }
-
-  // Rule 2: Detect 5+ scrobbles within 30 seconds
-  if (sortedTimestamps.length >= 5) {
-    for (let i = 0; i <= sortedTimestamps.length - 5; i++) {
-      const windowStart = sortedTimestamps[i];
-      const windowEnd = sortedTimestamps[i + 4];
-      const windowDuration = (windowEnd - windowStart) / 1000;
-
-      if (windowDuration <= 30) {
-        return true;
-      }
-    }
-  }
-
-  // Rule 3: Average time between scrobbles < 30 seconds
-  if (sortedTimestamps.length >= 10) {
-    const totalDuration = sortedTimestamps[sortedTimestamps.length - 1] - sortedTimestamps[0];
-    const avgTimeBetweenScrobbles = totalDuration / (sortedTimestamps.length - 1) / 1000;
-
-    if (avgTimeBetweenScrobbles < 30) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 async function freezeBattle(battle) {
   const streamCounts = await StreamCount.find({ battleId: battle._id })
     .populate('userId', 'username displayName')
@@ -81,23 +38,18 @@ async function freezeBattle(battle) {
           teamName: sc.teamId.name,
           memberCount: sc.teamId.members.length,
           totalScore: 0,
-          isCheater: false,
           members: [],
         });
       }
 
       const teamData = teamScoresMap.get(teamIdStr);
       teamData.totalScore += sc.count;
-      if (sc.isCheater) {
-        teamData.isCheater = true;
-      }
 
       teamData.members.push({
         userId: sc.userId._id,
         username: sc.userId.username,
         displayName: sc.userId.displayName,
         count: sc.count,
-        isCheater: sc.isCheater || false,
       });
     } else {
       soloPlayers.push({
@@ -106,7 +58,6 @@ async function freezeBattle(battle) {
         username: sc.userId.username,
         displayName: sc.userId.displayName,
         count: sc.count,
-        isCheater: sc.isCheater || false,
       });
     }
   }
@@ -274,7 +225,6 @@ async function verifyScrobbles() {
 
           const count = matchedTracks.length;
           const timestamps = matchedTracks.map(t => t.timestamp);
-          const isCheater = detectCheating(timestamps);
 
           const userTeam = await Team.findOne({
             battleId: battle._id,
@@ -287,16 +237,16 @@ async function verifyScrobbles() {
             { battleId: battle._id, userId: participant._id },
             {
               count,
-              isCheater,
+              isCheater: false,
               scrobbleTimestamps: timestamps,
               teamId: userTeam ? userTeam._id : null,
             },
             { upsert: false }
           );
 
-          // Log high-count, cheating, or significant changes
-          if (isCheater || count > 50) {
-            logger.warn(`${participant.username}: ${count} scrobbles${isCheater ? ' [CHEATER]' : ''}`);
+          // Log all users with scrobbles
+          if (count > 0) {
+            logger.info(`${participant.username}: ${count} scrobbles`);
           }
 
           // Warn if count stayed exactly at 100 (potential pagination bug indicator)

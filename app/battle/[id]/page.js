@@ -760,53 +760,58 @@ export default function BattlePage({ params }) {
         )}
       </div>
 
-      {/* Info card */}
-      <div className="relative overflow-hidden rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-950/30 to-purple-900/20 p-6 backdrop-blur-sm animate-slide-up">
-        <div className="absolute -bottom-12 -right-12 h-32 w-32 rounded-full bg-purple-500/10 blur-3xl"></div>
-        <div className="relative flex items-start gap-4">
-          <div className="w-10 h-10 rounded-lg bg-purple-500/20 border border-purple-500/40 flex items-center justify-center flex-shrink-0 shadow-lg shadow-purple-500/20">
-            <svg className="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-sm text-purple-200/80 leading-relaxed font-medium">
-              {battle.status === 'active' && (
-                <>Leaderboard updates automatically every 2 minutes. You can compete as a solo player or create/join a team to combine scores with others!</>
-              )}
-              {battle.status === 'ended' && (
-                <>Battle has ended. Final results are displayed above. Thank you for participating!</>
-              )}
-              {battle.status === 'upcoming' && (
-                <>Battle hasn't started yet. Join now to compete when it starts!</>
-              )}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Resource notice - Separate container */}
-      <div className="relative overflow-hidden rounded-xl border border-yellow-500/30 bg-gradient-to-r from-yellow-900/30 to-orange-900/30 p-6 backdrop-blur-sm animate-slide-up mt-6">
+      {/* Info & Sync Notice - Combined */}
+      <div className="relative overflow-hidden rounded-xl border border-yellow-500/30 bg-gradient-to-r from-yellow-900/30 to-orange-900/30 p-6 backdrop-blur-sm animate-slide-up">
         <div className="absolute -top-12 -left-12 h-32 w-32 rounded-full bg-yellow-500/10 blur-3xl"></div>
-        <div className="relative text-center">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <span className="text-2xl">⚡</span>
-            <h3 className="text-lg font-bold text-yellow-200">Running on limited resources</h3>
+        <div className="relative">
+          {/* Main info section */}
+          <div className="flex items-start gap-4 mb-6">
+            <div className="w-10 h-10 rounded-lg bg-purple-500/20 border border-purple-500/40 flex items-center justify-center flex-shrink-0 shadow-lg shadow-purple-500/20">
+              <svg className="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm text-purple-200/80 leading-relaxed font-medium">
+                {battle.status === 'active' && (
+                  <>You can compete as a solo player or create/join a team to combine scores with others!</>
+                )}
+                {battle.status === 'ended' && (
+                  <>Battle has ended. Final results are displayed above. Thank you for participating!</>
+                )}
+                {battle.status === 'upcoming' && (
+                  <>Battle hasn't started yet. Join now to compete when it starts!</>
+                )}
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-gray-300 mb-4">
-            Try checking your score every <span className="text-purple-300 font-bold">5 minutes</span> for updates.
-            <br />
-            Want faster updates? Consider supporting us to help upgrade the site!
-          </p>
-          <Link
-            href="https://ko-fi.com/noobsambit"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold rounded-lg transition-all shadow-lg hover:shadow-xl hover:scale-105"
-          >
-            <span>💜</span>
-            <span>Donate</span>
-          </Link>
+
+          {/* Sync timing info */}
+          {battle.status === 'active' && (
+            <div className="text-center pt-4 border-t border-yellow-500/20">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <span className="text-2xl">⚡</span>
+                <h3 className="text-lg font-bold text-yellow-200">Running on limited resources</h3>
+              </div>
+              <p className="text-sm text-gray-300 mb-4">
+                Scrobbles sync automatically within <span className="text-purple-300 font-bold">5 minutes</span>.
+                If not synced, it will update for sure within <span className="text-purple-300 font-bold">15-30 minutes</span> (auto sync).
+                <br />
+                Not seeing updates? Try the <span className="text-blue-300 font-bold">Manual Sync</span> button above!
+                <br />
+                <span className="text-xs text-gray-400 mt-1 inline-block">Want faster updates? Consider supporting us to help upgrade the site!</span>
+              </p>
+              <Link
+                href="https://ko-fi.com/noobsambit"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold rounded-lg transition-all shadow-lg hover:shadow-xl hover:scale-105"
+              >
+                <span>💜</span>
+                <span>Donate</span>
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 

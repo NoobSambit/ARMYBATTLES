@@ -12,75 +12,6 @@ import { logger } from '../../../utils/logger';
 const participantTrackCache = new Map();
 const PARTICIPANT_CACHE_TTL = 90000; // 90 seconds
 
-/**
- * Detects cheating patterns in scrobble timestamps
- * According to Last.fm API documentation and scrobbling guidelines:
- * - Minimum track duration to scrobble: 30 seconds OR 50% of track length (whichever is shorter)
- * - Tracks should be scrobbled after they've been played, not before
- * - Average song length is ~3-4 minutes
- *
- * Detection rules:
- * 1. Impossible scrobble rate: 11+ songs in 1 minute (avg <5.5 sec/song - impossible for legitimate play)
- * 2. Suspicious skip pattern: 5+ songs in 30 seconds (avg <6 sec/song - likely skipping)
- * 3. Unrealistic tempo: Average time between scrobbles < 30 seconds over 10+ songs
- */
-function detectCheating(timestamps) {
-  if (timestamps.length < 5) return false;
-
-  const sortedTimestamps = [...timestamps].sort((a, b) => a - b);
-
-  // Rule 1: Detect 11+ scrobbles within 1 minute window (original logic - definitely cheating)
-  for (let i = 0; i <= sortedTimestamps.length - 11; i++) {
-    const windowStart = sortedTimestamps[i];
-    const windowEnd = sortedTimestamps[i + 10];
-    const windowDuration = (windowEnd - windowStart) / 1000 / 60;
-
-    if (windowDuration <= 1) {
-      logger.warn('Cheating detected: 11+ scrobbles in 1 minute', {
-        windowDuration,
-        scrobbleCount: 11
-      });
-      return true;
-    }
-  }
-
-  // Rule 2: Detect 5+ scrobbles within 30 seconds (suspicious skipping pattern)
-  if (sortedTimestamps.length >= 5) {
-    for (let i = 0; i <= sortedTimestamps.length - 5; i++) {
-      const windowStart = sortedTimestamps[i];
-      const windowEnd = sortedTimestamps[i + 4];
-      const windowDuration = (windowEnd - windowStart) / 1000;
-
-      if (windowDuration <= 30) {
-        logger.warn('Cheating detected: 5+ scrobbles in 30 seconds', {
-          windowDuration,
-          scrobbleCount: 5
-        });
-        return true;
-      }
-    }
-  }
-
-  // Rule 3: Calculate average time between scrobbles for 10+ songs
-  if (sortedTimestamps.length >= 10) {
-    const totalDuration = sortedTimestamps[sortedTimestamps.length - 1] - sortedTimestamps[0];
-    const avgTimeBetweenScrobbles = totalDuration / (sortedTimestamps.length - 1) / 1000; // in seconds
-
-    // If average time between scrobbles is less than 30 seconds, it's unrealistic
-    // (Most songs are 2-5 minutes, so even with skipping to 50% mark, you'd need at least 60+ seconds per song)
-    if (avgTimeBetweenScrobbles < 30) {
-      logger.warn('Cheating detected: Unrealistic average tempo', {
-        avgTimeBetweenScrobbles,
-        totalScrobbles: sortedTimestamps.length,
-        totalDurationMinutes: totalDuration / 1000 / 60
-      });
-      return true;
-    }
-  }
-
-  return false;
-}
-
 async function freezeBattle(battle) {
   try {
     const streamCounts = await StreamCount.find({ battleId: battle._id })
@@ -102,16 +33,12 @@ async function freezeBattle(battle) {
             teamName: sc.teamId.name,
             memberCount: sc.teamId.members.length,
             totalScore: 0,
-            isCheater: false,
             members: [], // Store individual team member scores
           });
         }
 
         const teamData = teamScoresMap.get(teamIdStr);
         teamData.totalScore += sc.count;
-        if (sc.isCheater) {
-          teamData.isCheater = true;
-        }
 
         // Add individual team member data
         teamData.members.push({
@@ -119,7 +46,6 @@ async function freezeBattle(battle) {
           username: sc.userId.username,
           displayName: sc.userId.displayName,
           count: sc.count,
-          isCheater: sc.isCheater || false,
         });
       } else {
         // Solo player
@@ -129,7 +55,6 @@ async function freezeBattle(battle) {
           username: sc.userId.username,
           displayName: sc.userId.displayName,
           count: sc.count,
-          isCheater: sc.isCheater || false,
         });
       }
     }
@@ -422,7 +347,6 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
 
           const count = matchedTracks.length;
           const timestamps = matchedTracks.map(t => t.timestamp);
-          const isCheater = detectCheating(timestamps);
 
           // Check if user is in a team for this battle
           const userTeam = await Team.findOne({
@@ -434,16 +358,16 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
             { battleId: battle._id, userId: participant._id },
             {
               count,
-              isCheater,
+              isCheater: false,
               scrobbleTimestamps: timestamps,
               teamId: userTeam ? userTeam._id : null,
             },
             { upsert: false } // Don't upsert, we already created it above if needed
           );
 
-          // Only log if cheating detected or significant count
-          if (isCheater || count > 50) {
-            logger.warn(`${participant.username}: ${count} scrobbles${isCheater ? ' [CHEATER]' : ''}`);
+          // Log all users with scrobbles
+          if (count > 0) {
+            logger.info(`${participant.username}: ${count} scrobbles`);
           }
         } // end for battle loop
 
