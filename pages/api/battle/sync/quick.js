@@ -3,9 +3,11 @@ import Battle from '../../../../models/Battle';
 import StreamCount from '../../../../models/StreamCount';
 import Team from '../../../../models/Team';
 import User from '../../../../models/User';
+import BattleStats from '../../../../models/BattleStats';
 import { getRecentTracks, matchTrack } from '../../../../utils/lastfm';
 import { createHandler, withCors, withRateLimit, withAuth } from '../../../../lib/middleware';
 import { logger } from '../../../../utils/logger';
+import { updateStatsWithScrobble } from '../../../../utils/btsStats';
 import mongoose from 'mongoose';
 
 function detectCheating(timestamps) {
@@ -164,6 +166,38 @@ async function handler(req, res) {
       battleId: battle._id,
       members: req.userId
     });
+
+    // Update battle stats with NEW scrobbles only
+    const previousTimestamps = new Set(streamCount.scrobbleTimestamps || []);
+    const newScrobbles = matchedTracks.filter(track => !previousTimestamps.has(track.timestamp));
+
+    if (newScrobbles.length > 0) {
+      let battleStats = await BattleStats.findOne({ battleId: battle._id });
+
+      if (!battleStats) {
+        battleStats = await BattleStats.create({
+          battleId: battle._id,
+          totalBTSStreams: 0,
+          memberStats: {
+            RM: 0,
+            Jin: 0,
+            Suga: 0,
+            'J-Hope': 0,
+            Jimin: 0,
+            V: 0,
+            'Jung Kook': 0
+          },
+          topTracks: []
+        });
+      }
+
+      // Process only NEW scrobbles for stats
+      for (const scrobble of newScrobbles) {
+        updateStatsWithScrobble(battleStats, scrobble);
+      }
+
+      await battleStats.save();
+    }
 
     // Update StreamCount
     await StreamCount.findOneAndUpdate(

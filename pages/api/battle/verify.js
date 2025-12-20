@@ -3,8 +3,10 @@ import Battle from '../../../models/Battle';
 import StreamCount from '../../../models/StreamCount';
 import Team from '../../../models/Team';
 import User from '../../../models/User';
+import BattleStats from '../../../models/BattleStats';
 import { getRecentTracks, matchTrack } from '../../../utils/lastfm';
 import { logger } from '../../../utils/logger';
+import { updateStatsWithScrobble } from '../../../utils/btsStats';
 
 // Removed Socket.io support for Netlify serverless compatibility
 
@@ -365,6 +367,39 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
             { upsert: false } // Don't upsert, we already created it above if needed
           );
 
+          // Update battle stats with NEW scrobbles only (not already counted)
+          // Compare current timestamps with previous ones to find new scrobbles
+          const previousTimestamps = new Set(streamCount.scrobbleTimestamps || []);
+          const newScrobbles = matchedTracks.filter(track => !previousTimestamps.has(track.timestamp));
+
+          if (newScrobbles.length > 0) {
+            let battleStats = await BattleStats.findOne({ battleId: battle._id });
+
+            if (!battleStats) {
+              battleStats = await BattleStats.create({
+                battleId: battle._id,
+                totalBTSStreams: 0,
+                memberStats: {
+                  RM: 0,
+                  Jin: 0,
+                  Suga: 0,
+                  'J-Hope': 0,
+                  Jimin: 0,
+                  V: 0,
+                  'Jung Kook': 0
+                },
+                topTracks: []
+              });
+            }
+
+            // Process only NEW scrobbles for stats (cumulative tracking)
+            for (const scrobble of newScrobbles) {
+              updateStatsWithScrobble(battleStats, scrobble);
+            }
+
+            await battleStats.save();
+          }
+
           // Log all users with scrobbles
           if (count > 0) {
             logger.info(`${participant.username}: ${count} scrobbles`);
@@ -415,91 +450,29 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
 }
 
 /**
- * Netlify-compatible verification endpoint
- * Designed to be called by an external cron service every 2 minutes
- * No setInterval - each invocation performs one verification cycle
+ * DEPRECATED: External cron verification endpoint
+ * This endpoint has been DISABLED in favor of GitHub Actions workflow
+ * which runs every 5 minutes with no timeout constraints.
  *
- * Query Parameters:
- * - shard: (optional) Shard ID for parallel processing (0, 1, 2, 3...)
- * - totalShards: (optional) Total number of shards (default: 4)
+ * External cron had issues:
+ * - 9-second timeout causing incomplete processing
+ * - Round-robin rotation causing inconsistent coverage
+ * - Could overwrite correct data from GitHub Actions
  *
- * Examples:
- * - POST /api/battle/verify - Process all participants (no sharding)
- * - POST /api/battle/verify?shard=0&totalShards=4 - Process shard 0 of 4
- * - POST /api/battle/verify?shard=1&totalShards=4 - Process shard 1 of 4
+ * GitHub Actions workflow processes all users completely every 5 minutes.
+ * See: .github/workflows/verify-battles.yml
  */
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  // DISABLED: Return error to prevent external cron from running
+  logger.warn('External cron endpoint called but is DISABLED', {
+    ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+    message: 'This endpoint has been replaced by GitHub Actions workflow'
+  });
 
-  // Optional: Validate secret header to prevent unauthorized calls
-  const authHeader = req.headers['x-cron-secret'];
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (cronSecret && authHeader !== cronSecret) {
-    logger.warn('Unauthorized verification attempt', {
-      hasAuthHeader: !!authHeader,
-      ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
-      expectedHeader: 'x-cron-secret',
-      hint: authHeader ? 'Header value mismatch' : 'Missing x-cron-secret header'
-    });
-    return res.status(401).json({
-      error: 'Unauthorized',
-      message: 'Missing or invalid x-cron-secret header. Please configure your cron service to send the x-cron-secret header with your CRON_SECRET value.',
-      hint: 'If using cron-job.org, add a custom header in Advanced Settings: Header Name: x-cron-secret, Header Value: [your CRON_SECRET]'
-    });
-  }
-
-  try {
-    // Parse shard parameters from query string
-    const shardIdParam = req.query.shard;
-    const totalShardsParam = req.query.totalShards;
-
-    let shardId = null;
-    let totalShards = 4;
-
-    if (shardIdParam !== undefined) {
-      shardId = parseInt(shardIdParam, 10);
-      if (isNaN(shardId) || shardId < 0) {
-        return res.status(400).json({
-          error: 'Invalid shard parameter',
-          message: 'shard must be a non-negative integer'
-        });
-      }
-    }
-
-    if (totalShardsParam !== undefined) {
-      totalShards = parseInt(totalShardsParam, 10);
-      if (isNaN(totalShards) || totalShards < 1) {
-        return res.status(400).json({
-          error: 'Invalid totalShards parameter',
-          message: 'totalShards must be a positive integer'
-        });
-      }
-    }
-
-    if (shardId !== null && shardId >= totalShards) {
-      return res.status(400).json({
-        error: 'Invalid shard configuration',
-        message: `shard (${shardId}) must be less than totalShards (${totalShards})`
-      });
-    }
-
-    // Cron triggered - removed verbose logging
-
-    const result = await verifyScrobbles(shardId, totalShards);
-
-    res.status(200).json({
-      message: 'Verification completed successfully',
-      timestamp: new Date().toISOString(),
-      ...result
-    });
-  } catch (error) {
-    logger.error('Verification handler error', { error: error.message });
-    res.status(500).json({
-      error: 'Verification failed',
-      message: error.message
-    });
-  }
+  return res.status(410).json({
+    error: 'Endpoint Disabled',
+    message: 'External cron verification has been disabled. Scrobble verification now runs via GitHub Actions every 5 minutes.',
+    details: 'Please disable your external cron job configuration (cron-job.org or similar service).',
+    replacement: 'GitHub Actions workflow: .github/workflows/verify-battles.yml'
+  });
 }

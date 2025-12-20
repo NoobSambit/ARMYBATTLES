@@ -12,6 +12,7 @@ import BattleJoinModal from '@/components/BattleJoinModal';
 import KickParticipantModal from '@/components/KickParticipantModal';
 import ExtendBattleModal from '@/components/ExtendBattleModal';
 import ScorecardModal from '@/components/ScorecardModal';
+import BattleStatsModal from '@/components/BattleStatsModal';
 import { formatDate } from '@/lib/utils';
 
 export default function BattlePage({ params }) {
@@ -36,11 +37,15 @@ export default function BattlePage({ params }) {
   const [extendModalOpen, setExtendModalOpen] = useState(false);
   const [selectedParticipant, setSelectedParticipant] = useState(null);
   const [scorecardModalOpen, setScorecardModalOpen] = useState(false);
+  const [statsModalOpen, setStatsModalOpen] = useState(false);
 
   // Sync state
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncError, setSyncError] = useState('');
   const [syncSuccess, setSyncSuccess] = useState('');
+
+  // Leave battle state
+  const [leavingBattle, setLeavingBattle] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -282,6 +287,43 @@ export default function BattlePage({ params }) {
     }
   };
 
+  const handleLeaveBattle = async () => {
+    if (!confirm('Are you sure you want to leave this battle? Your progress will be lost and you can join other battles.')) {
+      return;
+    }
+
+    try {
+      setLeavingBattle(true);
+      setSyncError('');
+      setSyncSuccess('');
+
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/battle/${params.id}/leave`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to leave battle');
+      }
+
+      alert('You have successfully left the battle!');
+
+      // Redirect to dashboard after leaving
+      router.push('/dashboard');
+
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setLeavingBattle(false);
+    }
+  };
+
   if (error) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -406,6 +448,17 @@ export default function BattlePage({ params }) {
                 Join Battle
               </button>
             )}
+            <button
+              onClick={() => setStatsModalOpen(true)}
+              className="px-4 py-3 rounded-lg font-bold transition-all duration-200 bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 border border-purple-500/50 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2 text-sm sm:text-base"
+              title="View BTS & member statistics"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <span className="hidden sm:inline">Stats</span>
+              <span className="sm:hidden">📊</span>
+            </button>
             {userInBattle && battle.status === 'ended' && (
               <button
                 onClick={() => setScorecardModalOpen(true)}
@@ -444,6 +497,20 @@ export default function BattlePage({ params }) {
                   <span className="sm:hidden">{syncLoading ? '...' : 'Full'}</span>
                 </button>
               </>
+            )}
+            {userInBattle && !isHost && battle.status !== 'ended' && (
+              <button
+                onClick={handleLeaveBattle}
+                disabled={leavingBattle}
+                className="px-4 py-3 rounded-lg font-bold transition-all duration-200 bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed border border-orange-500/50 shadow-lg hover:shadow-xl hover:scale-105 disabled:hover:scale-100 flex items-center gap-2 text-sm sm:text-base"
+                title="Leave this battle"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span className="hidden sm:inline">{leavingBattle ? 'Leaving...' : 'Leave Battle'}</span>
+                <span className="sm:hidden">{leavingBattle ? '...' : 'Leave'}</span>
+              </button>
             )}
             {isHost && (
               <>
@@ -867,6 +934,12 @@ export default function BattlePage({ params }) {
         battle={battle}
         currentUser={currentUser}
         userStats={leaderboard.find(entry => entry.userId === (currentUser?.id || currentUser?._id))}
+      />
+
+      <BattleStatsModal
+        isOpen={statsModalOpen}
+        onClose={() => setStatsModalOpen(false)}
+        battleId={params.id}
       />
     </div>
   );

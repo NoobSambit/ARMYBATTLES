@@ -684,9 +684,90 @@ Future-proof: Can handle 10,000+ participants
 
 ---
 
+## Evolution Phase 7: External Cron Deprecation
+
+### The Conflict Problem (December 19, 2025)
+
+**Issue Discovered:** Both systems writing to same database causing data conflicts
+
+**The Scenario:**
+```
+11:00:00 - GitHub Actions runs
+         → Processes all 59 users perfectly
+         → Writes correct counts to MongoDB ✅
+
+11:01:00 - External cron (Shard 0) runs
+         → Has 9-second timeout
+         → Processes only 10 users
+         → OVERWRITES GitHub Actions data with potentially incomplete data! ❌
+
+11:01:30 - External cron (Shard 1-3) continue overwriting...
+```
+
+**User Feedback:**
+> "just noticed external cron did overwrite the results, plz remove external cron fully"
+
+### Implementation (December 19, 2025)
+
+#### 7.1 Disabled External Cron Endpoint
+
+Modified `/pages/api/battle/verify.js`:
+```javascript
+/**
+ * DEPRECATED: External cron verification endpoint
+ * This endpoint has been DISABLED in favor of GitHub Actions workflow
+ * which runs every 5 minutes with no timeout constraints.
+ *
+ * External cron had issues:
+ * - 9-second timeout causing incomplete processing
+ * - Round-robin rotation causing inconsistent coverage
+ * - Could overwrite correct data from GitHub Actions
+ */
+export default async function handler(req, res) {
+  // DISABLED: Return error to prevent external cron from running
+  logger.warn('External cron endpoint called but is DISABLED', {
+    ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+    message: 'This endpoint has been replaced by GitHub Actions workflow'
+  });
+
+  return res.status(410).json({
+    error: 'Endpoint Disabled',
+    message: 'External cron verification has been disabled. Scrobble verification now runs via GitHub Actions every 5 minutes.',
+    details: 'Please disable your external cron job configuration (cron-job.org or similar service).',
+    replacement: 'GitHub Actions workflow: .github/workflows/verify-battles.yml'
+  });
+}
+```
+
+**HTTP Status 410 (Gone):** Indicates endpoint is permanently disabled
+
+### Results
+
+- ✅ No more data conflicts between systems
+- ✅ Single source of truth (GitHub Actions only)
+- ✅ External cron jobs return clear error message
+- ✅ Verification logic preserved for reference
+- ✅ Clean migration path documented
+
+### Action Required
+
+**For Repository Owner:**
+1. Disable/delete all 4 external cron jobs on cron-job.org:
+   - `https://armybattles.netlify.app/api/battle/verify?shard=0&totalShards=4`
+   - `https://armybattles.netlify.app/api/battle/verify?shard=1&totalShards=4`
+   - `https://armybattles.netlify.app/api/battle/verify?shard=2&totalShards=4`
+   - `https://armybattles.netlify.app/api/battle/verify?shard=3&totalShards=4`
+
+2. Verify GitHub Actions workflow is running:
+   - Go to GitHub repo → Actions tab
+   - Check "Verify Battle Scrobbles" workflow runs every 5 minutes
+   - Confirm all users are being processed successfully
+
+---
+
 ## Credits
 
-**Evolution Timeline:** December 17, 2025
+**Evolution Timeline:** December 17-19, 2025
 **Developer:** NoobSambit (with Claude Code assistance)
 **Battle-tested:** ARMYBATTLES production environment
 
@@ -695,3 +776,5 @@ Future-proof: Can handle 10,000+ participants
 *This document serves as a roadmap for anyone facing similar serverless timeout issues. The journey from 10-second limits to unlimited processing is a testament to creative problem-solving and platform selection.*
 
 **Remember:** The right tool for the job matters more than clever hacks. GitHub Actions was the answer all along—we just had to find it! 🚀
+
+**Final Update:** External cron system has been fully deprecated in favor of GitHub Actions as the single source of truth for scrobble verification.
