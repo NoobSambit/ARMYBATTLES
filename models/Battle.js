@@ -11,6 +11,16 @@ const BattleSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  description: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  goal: {
+    type: Number,
+    required: true,
+    min: 1
+  },
   spotifyPlaylist: {
     type: String,
     required: true

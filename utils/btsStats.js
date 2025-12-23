@@ -93,15 +93,11 @@ export function updateStatsWithScrobble(stats, scrobble) {
 
   if (!category) return; // Not BTS-related
 
-  // Increment total BTS streams
-  stats.totalBTSStreams = (stats.totalBTSStreams || 0) + 1;
-
-  // If it's a group track, increment all members equally
+  // If it's a BTS group track, only count it in totalBTSStreams
   if (category === 'BTS') {
-    // For BTS group tracks, we don't attribute to individual members
-    // Only count towards total
+    stats.totalBTSStreams = (stats.totalBTSStreams || 0) + 1;
   } else {
-    // Individual member track
+    // Individual member solo track - count in memberStats only
     if (!stats.memberStats) {
       stats.memberStats = {
         RM: 0,

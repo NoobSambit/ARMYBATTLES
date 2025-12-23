@@ -13,8 +13,10 @@ const Battle = (await import('../models/Battle.js')).default;
 const StreamCount = (await import('../models/StreamCount.js')).default;
 const Team = (await import('../models/Team.js')).default;
 const User = (await import('../models/User.js')).default;
+const BattleStats = (await import('../models/BattleStats.js')).default;
 const { getRecentTracks, matchTrack } = await import('../utils/lastfm.js');
 const { logger } = await import('../utils/logger.js');
+const { updateStatsWithScrobble } = await import('../utils/btsStats.js');
 
 // Cache for participant tracks (same as verify.js)
 const participantTrackCache = new Map();
@@ -243,6 +245,38 @@ async function verifyScrobbles() {
             },
             { upsert: false }
           );
+
+          // Update battle stats with NEW scrobbles only (not already counted)
+          const previousTimestamps = new Set(streamCount.scrobbleTimestamps || []);
+          const newScrobbles = matchedTracks.filter(track => !previousTimestamps.has(track.timestamp));
+
+          if (newScrobbles.length > 0) {
+            let battleStats = await BattleStats.findOne({ battleId: battle._id });
+
+            if (!battleStats) {
+              battleStats = await BattleStats.create({
+                battleId: battle._id,
+                totalBTSStreams: 0,
+                memberStats: {
+                  RM: 0,
+                  Jin: 0,
+                  Suga: 0,
+                  'J-Hope': 0,
+                  Jimin: 0,
+                  V: 0,
+                  'Jung Kook': 0
+                },
+                topTracks: []
+              });
+            }
+
+            // Process only NEW scrobbles for stats (cumulative tracking)
+            for (const scrobble of newScrobbles) {
+              updateStatsWithScrobble(battleStats, scrobble);
+            }
+
+            await battleStats.save();
+          }
 
           // Log all users with scrobbles
           if (count > 0) {

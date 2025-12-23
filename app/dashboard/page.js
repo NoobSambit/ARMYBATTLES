@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Modal from '@/components/Modal';
 import BattleCard from '@/components/BattleCard';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { getBattleStatus } from '@/lib/utils';
+import { getBattleStatus, cn } from '@/lib/utils';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -15,6 +15,8 @@ export default function Dashboard() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [battleForm, setBattleForm] = useState({
     name: '',
+    description: '',
+    goal: '',
     spotifyPlaylist: '',
     startTime: '',
     endTime: '',
@@ -22,6 +24,9 @@ export default function Dashboard() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [creatingBattle, setCreatingBattle] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('active');
+  const [loadingBattles, setLoadingBattles] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -84,6 +89,7 @@ export default function Dashboard() {
 
   const fetchBattles = async () => {
     try {
+      setLoadingBattles(true);
       const res = await fetch('/api/battle/list');
       const data = await res.json();
       if (res.ok) {
@@ -91,6 +97,8 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error('Failed to fetch battles:', err);
+    } finally {
+      setLoadingBattles(false);
     }
   };
 
@@ -140,6 +148,7 @@ export default function Dashboard() {
 
       const payload = {
         ...battleForm,
+        goal: parseInt(battleForm.goal, 10),
         startTime: convertToUTC(battleForm.startTime),
         endTime: convertToUTC(battleForm.endTime),
       };
@@ -166,7 +175,7 @@ export default function Dashboard() {
 
       setSuccess('Battle created successfully!');
       setShowCreateForm(false);
-      setBattleForm({ name: '', spotifyPlaylist: '', startTime: '', endTime: '' });
+      setBattleForm({ name: '', description: '', goal: '', spotifyPlaylist: '', startTime: '', endTime: '' });
 
       // Still fetch to ensure we have the latest data
       setTimeout(() => fetchBattles(), 100);
@@ -209,6 +218,38 @@ export default function Dashboard() {
     ...battle,
     status: getBattleStatus(battle),
   }));
+
+  // Filter to show only user's battles (joined or hosted)
+  const userBattles = battlesWithStatus.filter(battle => {
+    if (!user) return false;
+
+    // Check if user is the host
+    const isHost = battle.hostId === user.id;
+
+    // Check if user is a participant
+    const isParticipant = battle.participants?.some(p => p.userId === user.id);
+
+    return isHost || isParticipant;
+  });
+
+  // Apply tab filter and search filter
+  const filteredUserBattles = userBattles.filter(battle => {
+    // Filter by tab
+    const matchesTab = activeTab === 'all' || battle.status === activeTab;
+
+    // Filter by search query
+    const matchesSearch = searchQuery.trim() === '' ||
+      battle.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesTab && matchesSearch;
+  });
+
+  const tabs = [
+    { id: 'all', label: 'All' },
+    { id: 'active', label: 'Active' },
+    { id: 'upcoming', label: 'Upcoming' },
+    { id: 'ended', label: 'Ended' },
+  ];
 
   if (!user) {
     return (
@@ -295,12 +336,12 @@ export default function Dashboard() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-400">Total Battles</span>
-              <span className="font-bold text-2xl text-bts-purple">{battles.length}</span>
+              <span className="font-bold text-2xl text-bts-purple">{userBattles.length}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-400">Active Now</span>
               <span className="font-bold text-2xl text-green-300">
-                {battlesWithStatus.filter(b => b.status === 'active').length}
+                {userBattles.filter(b => b.status === 'active').length}
               </span>
             </div>
           </div>
@@ -309,10 +350,69 @@ export default function Dashboard() {
 
       <div className="mb-8">
         <h2 className="section-title">Your Battles</h2>
-        {battles.length === 0 ? (
+
+        {userBattles.length > 0 && (
+          <>
+            <div className="mb-6">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search your battles..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-4 py-3 pl-12 bg-panel/50 backdrop-blur-sm border border-border-light rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-bts-purple/50 transition-colors"
+                />
+                <svg
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <nav className="flex space-x-2 overflow-x-auto p-1 bg-panel/50 backdrop-blur-sm border border-border-light rounded-2xl">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      'flex items-center gap-3 py-3 px-6 rounded-xl font-semibold text-sm transition-all duration-300 whitespace-nowrap',
+                      activeTab === tab.id
+                        ? 'bg-gradient-to-r from-bts-purple/20 to-bts-pink/20 text-white border border-bts-purple/30 shadow-glow-purple'
+                        : 'text-gray-400 hover:text-gray-200 hover:bg-panel-hover'
+                    )}
+                  >
+                    <span>{tab.label}</span>
+                    <span className={cn(
+                      'px-2.5 py-1 rounded-lg text-xs font-bold',
+                      activeTab === tab.id
+                        ? 'bg-bts-purple/30 text-white'
+                        : 'bg-panel-hover border border-border-light text-gray-300'
+                    )}>
+                      {tab.id === 'all' ? userBattles.length : userBattles.filter(b => b.status === tab.id).length}
+                    </span>
+                  </button>
+                ))}
+              </nav>
+            </div>
+          </>
+        )}
+
+        {loadingBattles ? (
+          <div className="text-center py-12 bg-panel border border-border rounded-lg animate-pulse">
+            <div className="flex justify-center mb-4">
+              <LoadingSpinner size="lg" />
+            </div>
+            <p className="text-gray-400">Loading your battles...</p>
+          </div>
+        ) : userBattles.length === 0 ? (
           <div className="text-center py-12 bg-panel border border-border rounded-lg">
-            <p className="text-gray-300 text-lg">No battles available</p>
-            <p className="text-gray-400 mt-2">Create your first battle to get started!</p>
+            <p className="text-gray-300 text-lg">No battles found</p>
+            <p className="text-gray-400 mt-2">Join or create a battle to get started!</p>
             <button
               onClick={() => setShowCreateForm(true)}
               className="btn-primary mt-4"
@@ -320,9 +420,14 @@ export default function Dashboard() {
               Create Battle
             </button>
           </div>
+        ) : filteredUserBattles.length === 0 ? (
+          <div className="text-center py-12 bg-panel border border-border rounded-lg">
+            <p className="text-gray-300 text-lg">No battles match your search</p>
+            <p className="text-gray-400 mt-2">Try a different search term</p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {battlesWithStatus.map((battle) => (
+            {filteredUserBattles.map((battle) => (
               <BattleCard key={battle.id} battle={battle} />
             ))}
           </div>
@@ -334,7 +439,7 @@ export default function Dashboard() {
         onClose={() => {
           setShowCreateForm(false);
           setError('');
-          setBattleForm({ name: '', spotifyPlaylist: '', startTime: '', endTime: '' });
+          setBattleForm({ name: '', description: '', goal: '', spotifyPlaylist: '', startTime: '', endTime: '' });
         }}
         title="Create New Battle"
         size="md"
@@ -352,6 +457,37 @@ export default function Dashboard() {
               required
               className="input-field"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Description <span className="text-xs text-gray-500">(Optional)</span>
+            </label>
+            <textarea
+              placeholder="Describe your battle..."
+              value={battleForm.description}
+              onChange={(e) => setBattleForm({ ...battleForm, description: e.target.value })}
+              rows={3}
+              maxLength={500}
+              className="input-field resize-none"
+            />
+            <p className="text-xs text-gray-500 mt-1">{battleForm.description.length}/500 characters</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Goal (Total Scrobbles/Streams) <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="number"
+              placeholder="e.g., 1000"
+              value={battleForm.goal}
+              onChange={(e) => setBattleForm({ ...battleForm, goal: e.target.value })}
+              required
+              min="1"
+              className="input-field"
+            />
+            <p className="text-xs text-gray-500 mt-1">Target number of total scrobbles/streams to reach</p>
           </div>
 
           <div>

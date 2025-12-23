@@ -45,11 +45,17 @@ async function handler(req, res) {
       };
     }
 
+    // Calculate total streams (BTS + all members)
+    const memberStreamsTotal = Object.values(battleStats.memberStats || {}).reduce((sum, count) => sum + count, 0);
+    const totalStreams = (battleStats.totalBTSStreams || 0) + memberStreamsTotal;
+
     return res.status(200).json({
       success: true,
       battleId: battle._id,
       battleName: battle.name,
+      battleDescription: battle.description,
       battleStatus: battle.status,
+      goal: battle.goal,
       stats: {
         totalBTSStreams: battleStats.totalBTSStreams || 0,
         memberStats: battleStats.memberStats || {
@@ -61,6 +67,7 @@ async function handler(req, res) {
           V: 0,
           'Jung Kook': 0
         },
+        totalStreams,
         topTracks: (battleStats.topTracks || []).slice(0, 10), // Top 10
         lastUpdated: battleStats.lastUpdated || battleStats.updatedAt
       }

@@ -13,6 +13,7 @@ import KickParticipantModal from '@/components/KickParticipantModal';
 import ExtendBattleModal from '@/components/ExtendBattleModal';
 import ScorecardModal from '@/components/ScorecardModal';
 import BattleStatsModal from '@/components/BattleStatsModal';
+import SyncModal from '@/components/SyncModal';
 import { formatDate } from '@/lib/utils';
 
 export default function BattlePage({ params }) {
@@ -38,6 +39,7 @@ export default function BattlePage({ params }) {
   const [selectedParticipant, setSelectedParticipant] = useState(null);
   const [scorecardModalOpen, setScorecardModalOpen] = useState(false);
   const [statsModalOpen, setStatsModalOpen] = useState(false);
+  const [syncModalOpen, setSyncModalOpen] = useState(false);
 
   // Sync state
   const [syncLoading, setSyncLoading] = useState(false);
@@ -471,32 +473,18 @@ export default function BattlePage({ params }) {
               </button>
             )}
             {userInBattle && battle.status === 'active' && (
-              <>
-                <button
-                  onClick={handleQuickSync}
-                  disabled={syncLoading}
-                  className="px-4 py-3 rounded-lg font-bold transition-all duration-200 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed border border-blue-500/50 shadow-lg hover:shadow-xl hover:scale-105 disabled:hover:scale-100 flex items-center gap-2 text-sm sm:text-base"
-                  title="Sync up to 800 recent scrobbles (~5 seconds)"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  <span className="hidden sm:inline">{syncLoading ? 'Syncing...' : 'Quick Sync'}</span>
-                  <span className="sm:hidden">{syncLoading ? '...' : 'Quick'}</span>
-                </button>
-                <button
-                  onClick={handleFullSync}
-                  disabled={syncLoading}
-                  className="px-4 py-3 rounded-lg font-bold transition-all duration-200 bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed border border-purple-500/50 shadow-lg hover:shadow-xl hover:scale-105 disabled:hover:scale-100 flex items-center gap-2 text-sm sm:text-base"
-                  title="Sync all scrobbles (may take 2-3 minutes)"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                  </svg>
-                  <span className="hidden sm:inline">{syncLoading ? 'Syncing...' : 'Full Sync'}</span>
-                  <span className="sm:hidden">{syncLoading ? '...' : 'Full'}</span>
-                </button>
-              </>
+              <button
+                onClick={() => setSyncModalOpen(true)}
+                disabled={syncLoading}
+                className="px-4 py-3 rounded-lg font-bold transition-all duration-200 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed border border-blue-500/50 shadow-lg hover:shadow-xl hover:scale-105 disabled:hover:scale-100 flex items-center gap-2 text-sm sm:text-base"
+                title="Manually sync your scrobbles"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span className="hidden sm:inline">{syncLoading ? 'Syncing...' : 'Sync'}</span>
+                <span className="sm:hidden">{syncLoading ? '...' : '🔄'}</span>
+              </button>
             )}
             {userInBattle && !isHost && battle.status !== 'ended' && (
               <button
@@ -733,17 +721,14 @@ export default function BattlePage({ params }) {
                         <div className={cn(
                           'w-8 h-8 md:w-12 md:h-12 rounded-lg flex-shrink-0 flex items-center justify-center font-black text-xs md:text-lg border shadow-lg',
                           rank === 1
-                            ? 'bg-yellow-500 text-gray-900 border-yellow-500/50 shadow-yellow-500/30'
+                            ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white border-yellow-500/50 shadow-yellow-500/30'
                             : rank === 2
-                            ? 'bg-gray-400 text-gray-900 border-gray-400/50 shadow-gray-500/30'
+                            ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white border-gray-400/50 shadow-gray-500/30'
                             : rank === 3
-                            ? 'bg-orange-500 text-gray-900 border-orange-500/50 shadow-orange-500/30'
+                            ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white border-orange-500/50 shadow-orange-500/30'
                             : 'bg-purple-900/40 text-purple-300 border-purple-500/30 shadow-purple-500/20'
                         )}>
-                          {rank === 1 && '👑'}
-                          {rank === 2 && '🥈'}
-                          {rank === 3 && '🥉'}
-                          {rank > 3 && `#${rank}`}
+                          {rank <= 3 ? rank : `#${rank}`}
                         </div>
 
                         {/* Player Details */}
@@ -821,7 +806,7 @@ export default function BattlePage({ params }) {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Last updated: {formatDate(lastUpdated)}
+              Last updated: {new Date(lastUpdated).toLocaleString()}
             </p>
           </div>
         )}
@@ -940,6 +925,14 @@ export default function BattlePage({ params }) {
         isOpen={statsModalOpen}
         onClose={() => setStatsModalOpen(false)}
         battleId={params.id}
+      />
+
+      <SyncModal
+        isOpen={syncModalOpen}
+        onClose={() => setSyncModalOpen(false)}
+        onQuickSync={handleQuickSync}
+        onFullSync={handleFullSync}
+        loading={syncLoading}
       />
     </div>
   );

@@ -9,7 +9,8 @@ import { cn } from '@/lib/utils';
 export default function BattlesPage() {
   const [battles, setBattles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState('active');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchBattles();
@@ -34,8 +35,14 @@ export default function BattlesPage() {
   };
 
   const filteredBattles = battles.filter(battle => {
-    if (activeTab === 'all') return true;
-    return battle.status === activeTab;
+    // Filter by tab
+    const matchesTab = activeTab === 'all' || battle.status === activeTab;
+
+    // Filter by search query
+    const matchesSearch = searchQuery.trim() === '' ||
+      battle.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesTab && matchesSearch;
   });
 
   const tabs = [
@@ -50,6 +57,26 @@ export default function BattlesPage() {
       <div className="mb-10 animate-slide-up">
         <h1 className="text-4xl sm:text-5xl font-black text-white mb-3">All Battles</h1>
         <p className="text-lg text-gray-400">Join the competition or spectate the action</p>
+      </div>
+
+      <div className="mb-6 animate-slide-up">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search battles..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-3 pl-12 bg-panel/50 backdrop-blur-sm border border-border-light rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-bts-purple/50 transition-colors"
+          />
+          <svg
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
       </div>
 
       <div className="mb-10 animate-slide-up">
@@ -80,8 +107,11 @@ export default function BattlesPage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20">
-          <LoadingSpinner size="lg" />
+        <div className="text-center py-20 card-glass animate-pulse">
+          <div className="flex justify-center mb-6">
+            <LoadingSpinner size="lg" />
+          </div>
+          <p className="text-gray-400 text-lg">Loading battles...</p>
         </div>
       ) : filteredBattles.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-slide-up">

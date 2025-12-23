@@ -13,13 +13,13 @@ async function handler(req, res) {
   try {
     await connectDB();
 
-    const { name, spotifyPlaylist, startTime, endTime } = req.validatedBody;
+    const { name, description, goal, spotifyPlaylist, startTime, endTime } = req.validatedBody;
 
     const start = new Date(startTime);
     const end = new Date(endTime);
 
     const playlistId = extractPlaylistId(spotifyPlaylist);
-    
+
     logger.info('Fetching Spotify playlist tracks', { playlistId });
     const playlistTracks = await getPlaylistTracks(playlistId);
 
@@ -30,6 +30,8 @@ async function handler(req, res) {
     const battle = await Battle.create({
       host: req.userId,
       name,
+      description: description || '',
+      goal,
       spotifyPlaylist: playlistId,
       playlistTracks,
       startTime: start,
@@ -49,6 +51,8 @@ async function handler(req, res) {
       battle: {
         id: battle._id,
         name: battle.name,
+        description: battle.description,
+        goal: battle.goal,
         spotifyPlaylist: battle.spotifyPlaylist,
         startTime: battle.startTime,
         endTime: battle.endTime,

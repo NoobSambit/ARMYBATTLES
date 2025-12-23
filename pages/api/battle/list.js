@@ -27,18 +27,26 @@ async function handler(req, res) {
 
     const battles = await Battle.find()
       .populate('host', 'username')
+      .populate('participants', '_id username')
       .sort({ createdAt: -1 })
       .limit(50);
 
     const battlesData = battles.map(battle => ({
       id: battle._id,
       name: battle.name,
+      description: battle.description,
+      goal: battle.goal,
       host: battle.host.username,
+      hostId: battle.host._id.toString(),
       startTime: battle.startTime,
       endTime: battle.endTime,
       status: battle.status,
       participantCount: battle.participants.length,
       trackCount: battle.playlistTracks.length,
+      participants: battle.participants.map(p => ({
+        userId: p._id.toString(),
+        username: p.username
+      })),
     }));
 
     // Update cache

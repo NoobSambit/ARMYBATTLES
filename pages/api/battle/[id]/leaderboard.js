@@ -1,5 +1,6 @@
 import connectDB from '../../../../utils/db';
 import Battle from '../../../../models/Battle';
+import BattleStats from '../../../../models/BattleStats';
 import StreamCount from '../../../../models/StreamCount';
 import Team from '../../../../models/Team';
 import User from '../../../../models/User';
@@ -33,7 +34,7 @@ async function handler(req, res) {
       // Check if battle is still active before serving cache
       if (cached.data.status === 'active') {
         logger.info('Leaderboard served from cache', { battleId: id, filter });
-        return res.status(200).json({ ...cached.data, updatedAt: new Date().toISOString() });
+        return res.status(200).json(cached.data);
       }
     }
 
@@ -235,6 +236,10 @@ async function handler(req, res) {
       });
     }
 
+    // Get the actual lastUpdated timestamp from BattleStats
+    const battleStats = await BattleStats.findOne({ battleId: id });
+    const lastUpdated = battleStats?.lastUpdated || battleStats?.updatedAt || null;
+
     const response = {
       battleId: id,
       battleName: battle.name,
@@ -247,7 +252,7 @@ async function handler(req, res) {
       participants: battle.participants.map(p => p._id.toString()),
       filter,
       leaderboard,
-      updatedAt: new Date().toISOString(),
+      updatedAt: lastUpdated ? lastUpdated.toISOString() : null,
     };
 
     // Cache only if battle is active
