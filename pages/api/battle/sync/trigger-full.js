@@ -80,16 +80,20 @@ async function handler(req, res) {
 
     // Trigger GitHub Actions workflow
     const GITHUB_PAT = process.env.GITHUB_PAT;
-    if (!GITHUB_PAT) {
-      logger.error('GITHUB_PAT environment variable not set');
+    const GITHUB_OWNER = process.env.GITHUB_OWNER;
+    const GITHUB_REPO = process.env.GITHUB_REPO;
+
+    if (!GITHUB_PAT || !GITHUB_OWNER || !GITHUB_REPO) {
+      logger.error('GitHub environment variables not configured', {
+        hasPAT: !!GITHUB_PAT,
+        hasOwner: !!GITHUB_OWNER,
+        hasRepo: !!GITHUB_REPO
+      });
       return res.status(500).json({
         error: 'Full sync unavailable',
         message: 'Server configuration error. Please contact support.'
       });
     }
-
-    const GITHUB_OWNER = process.env.GITHUB_OWNER || 'hairyfairy';
-    const GITHUB_REPO = process.env.GITHUB_REPO || 'ARMYBATTLES-main';
 
     const octokit = new Octokit({ auth: GITHUB_PAT });
 
