@@ -2,6 +2,7 @@ import dbConnect from '../../../../utils/db';
 import Battle from '../../../../models/Battle';
 import StreamCount from '../../../../models/StreamCount';
 import Team from '../../../../models/Team';
+import User from '../../../../models/User';
 import { createHandler, withCors, withRateLimit, withAuth } from '../../../../lib/middleware';
 
 /**
@@ -47,14 +48,15 @@ async function handler(req, res) {
 
     // Check if user is a participant
     const participantIndex = battle.participants.findIndex(
-      p => p.userId.toString() === userId
+      p => p.toString() === userId
     );
 
     if (participantIndex === -1) {
       return res.status(400).json({ error: 'You are not a participant in this battle' });
     }
 
-    const participant = battle.participants[participantIndex];
+    // Get user info
+    const user = await User.findById(userId);
 
     // Get their current score before leaving
     const streamCount = await StreamCount.findOne({ battleId, userId });
@@ -70,7 +72,7 @@ async function handler(req, res) {
 
     battle.removedParticipants.push({
       userId,
-      username: participant.username,
+      username: user?.username || 'Unknown',
       removedAt: new Date(),
       removedBy: userId, // Self-removal
       scoreAtRemoval: scoreAtLeaving,

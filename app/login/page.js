@@ -132,7 +132,7 @@ export default function Login() {
                 autoComplete="url"
               />
               <p className="text-xs text-gray-400 mt-2">
-                Your full Last.fm profile URL (e.g., <span className="text-bts-pink-bright font-mono">https://www.last.fm/user/NoobSambit</span>)
+                Your full Last.fm profile URL (e.g., <span className="text-bts-pink-bright font-mono">https://www.last.fm/user/YourUsername</span>)
               </p>
             </div>
 
