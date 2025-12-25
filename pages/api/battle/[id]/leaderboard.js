@@ -1,6 +1,7 @@
 import connectDB from '../../../../utils/db';
 import Battle from '../../../../models/Battle';
 import BattleStats from '../../../../models/BattleStats';
+import SyncLog from '../../../../models/SyncLog';
 import StreamCount from '../../../../models/StreamCount';
 import Team from '../../../../models/Team';
 import User from '../../../../models/User';
@@ -236,9 +237,13 @@ async function handler(req, res) {
       });
     }
 
-    // Get the actual lastUpdated timestamp from BattleStats
-    const battleStats = await BattleStats.findOne({ battleId: id });
-    const lastUpdated = battleStats?.lastUpdated || battleStats?.updatedAt || null;
+    // Get the latest successful sync completion time
+    // This shows when the GitHub action or manual sync actually finished
+    const latestSync = await SyncLog.findOne({
+      status: 'success'
+    }).sort({ completedAt: -1 });
+
+    const lastUpdated = latestSync?.completedAt || null;
 
     const response = {
       battleId: id,

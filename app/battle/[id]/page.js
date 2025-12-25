@@ -799,17 +799,6 @@ export default function BattlePage({ params }) {
             })}
           </div>
         )}
-
-        {lastUpdated && (
-          <div className="mt-6 text-center">
-            <p className="text-sm text-muted flex items-center justify-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Last updated: {new Date(lastUpdated).toLocaleString()}
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Info & Sync Notice - Combined */}

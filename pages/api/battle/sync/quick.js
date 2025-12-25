@@ -4,6 +4,7 @@ import StreamCount from '../../../../models/StreamCount';
 import Team from '../../../../models/Team';
 import User from '../../../../models/User';
 import BattleStats from '../../../../models/BattleStats';
+import SyncLog from '../../../../models/SyncLog';
 import { getRecentTracks, matchTrack } from '../../../../utils/lastfm';
 import { createHandler, withCors, withRateLimit, withAuth } from '../../../../lib/middleware';
 import { logger } from '../../../../utils/logger';
@@ -220,6 +221,21 @@ async function handler(req, res) {
       count,
       executionTime: Date.now() - startTime
     });
+
+    // Log sync completion
+    try {
+      await SyncLog.create({
+        type: 'quick_sync',
+        completedAt: new Date(),
+        battleId: battle._id,
+        status: 'success',
+        details: {
+          scrobblesVerified: count
+        }
+      });
+    } catch (logError) {
+      // Ignore logging errors
+    }
 
     res.status(200).json({
       success: true,

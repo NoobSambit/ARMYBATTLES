@@ -14,6 +14,7 @@ const StreamCount = (await import('../models/StreamCount.js')).default;
 const Team = (await import('../models/Team.js')).default;
 const User = (await import('../models/User.js')).default;
 const BattleStats = (await import('../models/BattleStats.js')).default;
+const SyncLog = (await import('../models/SyncLog.js')).default;
 const { getRecentTracks, matchTrack } = await import('../utils/lastfm.js');
 const { logger } = await import('../utils/logger.js');
 const { updateStatsWithScrobble } = await import('../utils/btsStats.js');
@@ -305,6 +306,23 @@ async function verifyScrobbles() {
     const shardInfo = totalShards > 1 ? ` [Shard ${shardId}/${totalShards}]` : '';
     logger.info(`✅ Verification complete${shardInfo}: ${participantsProcessed}/${participantsToProcess.length} processed (${executionTime}ms)`);
 
+    // Log sync completion timestamp
+    try {
+      await SyncLog.create({
+        type: 'github_action',
+        completedAt: new Date(),
+        status: 'success',
+        details: {
+          battlesProcessed: activeBattles.length,
+          scrobblesVerified: participantsProcessed
+        }
+      });
+      logger.info('Sync completion logged');
+    } catch (logError) {
+      logger.error('Failed to log sync completion', { error: logError.message });
+      // Don't throw - sync succeeded even if logging failed
+    }
+
     return {
       success: true,
       executionTimeMs: executionTime,
@@ -315,6 +333,21 @@ async function verifyScrobbles() {
 
   } catch (error) {
     logger.error('Verification error', { error: error.message, stack: error.stack });
+
+    // Log failed sync
+    try {
+      await SyncLog.create({
+        type: 'github_action',
+        completedAt: new Date(),
+        status: 'failed',
+        details: {
+          errors: [error.message]
+        }
+      });
+    } catch (logError) {
+      // Ignore logging errors on failure
+    }
+
     throw error;
   }
 }
