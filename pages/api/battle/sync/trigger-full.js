@@ -7,6 +7,16 @@ import { logger } from '../../../../utils/logger';
 import mongoose from 'mongoose';
 import { Octokit } from '@octokit/rest';
 
+function getEffectiveBattleStatus(battle) {
+  if (battle.status === 'ended') return 'ended';
+  const now = new Date();
+  const start = new Date(battle.startTime);
+  const end = new Date(battle.endTime);
+  if (now >= end) return 'ended';
+  if (now >= start) return 'active';
+  return 'upcoming';
+}
+
 async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -27,10 +37,11 @@ async function handler(req, res) {
       return res.status(404).json({ error: 'Battle not found' });
     }
 
-    if (battle.status !== 'active') {
+    const effectiveStatus = getEffectiveBattleStatus(battle);
+    if (effectiveStatus !== 'active') {
       return res.status(400).json({
         error: 'Battle is not active',
-        status: battle.status
+        status: effectiveStatus
       });
     }
 

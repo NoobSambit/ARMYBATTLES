@@ -14,7 +14,7 @@ import ExtendBattleModal from '@/components/ExtendBattleModal';
 import ScorecardModal from '@/components/ScorecardModal';
 import BattleStatsModal from '@/components/BattleStatsModal';
 import SyncModal from '@/components/SyncModal';
-import { formatDate } from '@/lib/utils';
+import { formatDate, getBattleStatus } from '@/lib/utils';
 
 export default function BattlePage({ params }) {
   const router = useRouter();
@@ -143,10 +143,16 @@ export default function BattlePage({ params }) {
         throw new Error(data.error || 'Failed to fetch leaderboard');
       }
 
+      const resolvedStatus = getBattleStatus({
+        status: data.status,
+        startTime: data.startTime,
+        endTime: data.endTime,
+      });
+
       setBattle({
         _id: battleId,
         name: data.battleName,
-        status: data.status,
+        status: resolvedStatus,
         startTime: data.startTime,
         endTime: data.endTime,
         participantCount: data.participantCount,

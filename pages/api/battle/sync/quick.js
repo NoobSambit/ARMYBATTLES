@@ -11,6 +11,16 @@ import { logger } from '../../../../utils/logger';
 import { updateStatsWithScrobble } from '../../../../utils/btsStats';
 import mongoose from 'mongoose';
 
+function getEffectiveBattleStatus(battle) {
+  if (battle.status === 'ended') return 'ended';
+  const now = new Date();
+  const start = new Date(battle.startTime);
+  const end = new Date(battle.endTime);
+  if (now >= end) return 'ended';
+  if (now >= start) return 'active';
+  return 'upcoming';
+}
+
 function detectCheating(timestamps) {
   if (!timestamps || timestamps.length < 5) {
     return false;
@@ -78,10 +88,11 @@ async function handler(req, res) {
       return res.status(404).json({ error: 'Battle not found' });
     }
 
-    if (battle.status !== 'active') {
+    const effectiveStatus = getEffectiveBattleStatus(battle);
+    if (effectiveStatus !== 'active') {
       return res.status(400).json({
         error: 'Battle is not active',
-        status: battle.status
+        status: effectiveStatus
       });
     }
 
