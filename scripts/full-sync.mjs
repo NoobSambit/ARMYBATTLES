@@ -127,12 +127,24 @@ async function fullSync() {
     });
 
     // Fetch ALL tracks (no maxPages limit, full pagination)
-    const recentTracks = await getRecentTracks(
+    const fetchResult = await getRecentTracks(
       user.lastfmUsername,
       Math.max(battle.startTime.getTime(), countScrobblesFrom),
       battle.endTime.getTime(),
-      { maxPages: null, delayBetweenRequests: 200 } // FULL PAGINATION
+      { maxPages: null, delayBetweenRequests: 200, includeMeta: true } // FULL PAGINATION
     );
+    const recentTracks = fetchResult.tracks;
+    const fetchMeta = fetchResult.meta;
+
+    if (fetchMeta?.partial) {
+      logger.warn(`⚠️ ${user.username}: Partial Last.fm data`, {
+        partial: true,
+        hadError: fetchMeta.hadError,
+        hitMaxPages: fetchMeta.hitMaxPages,
+        fetchedPages: fetchMeta.fetchedPages,
+        totalPages: fetchMeta.totalPages
+      });
+    }
 
     logger.info(`Fetched ${recentTracks.length} total scrobbles from Last.fm`);
 
@@ -145,8 +157,13 @@ async function fullSync() {
       return isInTimeRange && matchTrack(scrobble, battle.playlistTracks);
     });
 
-    const count = matchedTracks.length;
-    const timestamps = matchedTracks.map(t => t.timestamp);
+    const previousTimestampsArray = streamCount.scrobbleTimestamps || [];
+    const isPartial = fetchMeta?.partial ?? false;
+    const matchedTimestamps = matchedTracks.map(t => t.timestamp);
+    const timestamps = isPartial
+      ? Array.from(new Set([...previousTimestampsArray, ...matchedTimestamps]))
+      : matchedTimestamps;
+    const count = timestamps.length;
     const isCheater = detectCheating(timestamps);
 
     logger.info(`Matched ${count} playlist tracks`);

@@ -143,12 +143,24 @@ async function handler(req, res) {
 
     // Fetch scrobbles with pagination (max 4 pages = 800 tracks)
     const countScrobblesFrom = streamCount.createdAt.getTime();
-    const recentTracks = await getRecentTracks(
+    const fetchResult = await getRecentTracks(
       user.lastfmUsername,
       Math.max(battle.startTime.getTime(), countScrobblesFrom),
       battle.endTime.getTime(),
-      { maxPages: 4, delayBetweenRequests: 200 } // ~800 scrobbles, ~4 seconds
+      { maxPages: 4, delayBetweenRequests: 200, includeMeta: true } // ~800 scrobbles, ~4 seconds
     );
+    const recentTracks = fetchResult.tracks;
+    const fetchMeta = fetchResult.meta;
+
+    if (fetchMeta?.partial) {
+      logger.warn(`⚠️ ${user.username}: Partial Last.fm data`, {
+        partial: true,
+        hadError: fetchMeta.hadError,
+        hitMaxPages: fetchMeta.hitMaxPages,
+        fetchedPages: fetchMeta.fetchedPages,
+        totalPages: fetchMeta.totalPages
+      });
+    }
 
     // Check timeout
     if (Date.now() - startTime > MAX_EXECUTION_TIME) {
@@ -167,8 +179,14 @@ async function handler(req, res) {
       return isInTimeRange && matchTrack(scrobble, battle.playlistTracks);
     });
 
-    const count = matchedTracks.length;
-    const timestamps = matchedTracks.map(t => t.timestamp);
+    const previousTimestampsArray = streamCount.scrobbleTimestamps || [];
+    const previousTimestamps = new Set(previousTimestampsArray);
+    const isPartial = fetchMeta?.partial ?? false;
+    const matchedTimestamps = matchedTracks.map(t => t.timestamp);
+    const timestamps = isPartial
+      ? Array.from(new Set([...previousTimestampsArray, ...matchedTimestamps]))
+      : matchedTimestamps;
+    const count = timestamps.length;
 
     // Detect cheating
     const isCheater = detectCheating(timestamps);
@@ -180,7 +198,6 @@ async function handler(req, res) {
     });
 
     // Update battle stats with NEW scrobbles only
-    const previousTimestamps = new Set(streamCount.scrobbleTimestamps || []);
     const newScrobbles = matchedTracks.filter(track => !previousTimestamps.has(track.timestamp));
 
     if (newScrobbles.length > 0) {

@@ -119,15 +119,25 @@ export async function getLastfmProfile(username) {
 }
 
 export async function getRecentTracks(username, fromTimestamp, toTimestamp, options = {}) {
-  const { maxPages = null, delayBetweenRequests = 200, timeout = 3000 } = options;
+  const {
+    maxPages = null,
+    delayBetweenRequests = 200,
+    timeout = 3000,
+    includeMeta = false
+  } = options;
 
   const allTracks = [];
   let currentPage = 1;
   let totalPages = 1;
+  let pagesFetched = 0;
+  let hitMaxPages = false;
+  let hadError = false;
+  let errorMessage = null;
+  let errorPage = null;
 
   try {
     do {
-      const response = await axios.get('http://ws.audioscrobbler.com/2.0/', {
+      const response = await axios.get('https://ws.audioscrobbler.com/2.0/', {
         params: {
           method: 'user.getrecenttracks',
           user: username,
@@ -163,15 +173,22 @@ export async function getRecentTracks(username, fromTimestamp, toTimestamp, opti
         }));
 
       allTracks.push(...processedTracks);
+      pagesFetched = currentPage;
 
-      // Check if we should continue
+      const hasMorePages = currentPage < totalPages;
+      const reachedMaxPages = maxPages !== null && currentPage >= maxPages;
+
+      if (reachedMaxPages) {
+        if (hasMorePages) {
+          hitMaxPages = true;
+        }
+        break;
+      }
+      if (!hasMorePages) {
+        break;
+      }
+
       currentPage++;
-      if (maxPages !== null && currentPage > maxPages) {
-        break; // Reached page limit for quick sync
-      }
-      if (currentPage > totalPages) {
-        break; // No more pages
-      }
 
       // Delay between requests to respect Last.fm rate limits
       if (currentPage <= totalPages) {
@@ -180,15 +197,11 @@ export async function getRecentTracks(username, fromTimestamp, toTimestamp, opti
 
     } while (currentPage <= totalPages);
 
-    // Deduplicate by timestamp (edge case protection)
-    const uniqueTracks = Array.from(
-      new Map(allTracks.map(track => [track.timestamp, track])).values()
-    );
-
-    return uniqueTracks;
-
   } catch (error) {
     const errorDetails = error.response?.data || error.message;
+    hadError = true;
+    errorMessage = errorDetails;
+    errorPage = currentPage;
     console.error(`Error fetching Last.fm tracks for ${username}:`, errorDetails);
 
     // If we got partial results, warn about incomplete data
@@ -196,8 +209,29 @@ export async function getRecentTracks(username, fromTimestamp, toTimestamp, opti
       console.warn(`Returning ${allTracks.length} partial tracks for ${username} due to error on page ${currentPage}`);
     }
 
-    return allTracks; // Return partial results if available
   }
+
+  // Deduplicate by timestamp (edge case protection)
+  const uniqueTracks = Array.from(
+    new Map(allTracks.map(track => [track.timestamp, track])).values()
+  );
+
+  const meta = {
+    complete: !hadError && !hitMaxPages,
+    partial: hadError || hitMaxPages,
+    hadError,
+    hitMaxPages,
+    fetchedPages: pagesFetched,
+    totalPages,
+    error: errorMessage,
+    errorPage
+  };
+
+  if (includeMeta) {
+    return { tracks: uniqueTracks, meta };
+  }
+
+  return uniqueTracks;
 }
 
 /**

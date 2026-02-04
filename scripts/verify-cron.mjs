@@ -169,18 +169,23 @@ async function verifyScrobbles() {
         const cacheKey = `${username}-${earliestStartTime}-${battleIds}`;
 
         let recentTracks;
+        let fetchMeta = null;
         const cachedData = participantTrackCache.get(cacheKey);
 
         if (cachedData && (Date.now() - cachedData.timestamp) < PARTICIPANT_CACHE_TTL) {
           recentTracks = cachedData.tracks;
+          fetchMeta = cachedData.meta || { partial: false, complete: true };
         } else {
           // GitHub Actions: Use 30-second timeout per request, no page limit, reduced delay
           const fetchStartTime = Date.now();
-          recentTracks = await getRecentTracks(username, earliestStartTime, now.getTime(), {
+          const fetchResult = await getRecentTracks(username, earliestStartTime, now.getTime(), {
             timeout: 30000,
             maxPages: null, // Fetch ALL pages (no limit)
-            delayBetweenRequests: 100 // Reduce delay from 200ms to 100ms for faster fetching
+            delayBetweenRequests: 100, // Reduce delay from 200ms to 100ms for faster fetching
+            includeMeta: true
           });
+          recentTracks = fetchResult.tracks;
+          fetchMeta = fetchResult.meta;
           const fetchDuration = Date.now() - fetchStartTime;
 
           // Log if fetching took unusually long or returned many tracks
@@ -188,10 +193,21 @@ async function verifyScrobbles() {
             logger.info(`${username}: Fetched ${recentTracks.length} tracks in ${fetchDuration}ms`);
           }
 
-          participantTrackCache.set(cacheKey, {
-            tracks: recentTracks,
-            timestamp: Date.now()
-          });
+          if (fetchMeta?.partial) {
+            logger.warn(`⚠️ ${participant.username}: Partial Last.fm data`, {
+              partial: true,
+              hadError: fetchMeta.hadError,
+              hitMaxPages: fetchMeta.hitMaxPages,
+              fetchedPages: fetchMeta.fetchedPages,
+              totalPages: fetchMeta.totalPages
+            });
+          } else {
+            participantTrackCache.set(cacheKey, {
+              tracks: recentTracks,
+              meta: fetchMeta,
+              timestamp: Date.now()
+            });
+          }
 
           if (participantTrackCache.size > 200) {
             const oldestKeys = Array.from(participantTrackCache.keys()).slice(0, 100);
@@ -226,8 +242,14 @@ async function verifyScrobbles() {
             return isInTimeRange && matchTrack(scrobble, battle.playlistTracks);
           });
 
-          const count = matchedTracks.length;
-          const timestamps = matchedTracks.map(t => t.timestamp);
+          const previousTimestampsArray = streamCount.scrobbleTimestamps || [];
+          const previousTimestamps = new Set(previousTimestampsArray);
+          const isPartial = fetchMeta?.partial ?? false;
+          const matchedTimestamps = matchedTracks.map(t => t.timestamp);
+          const timestamps = isPartial
+            ? Array.from(new Set([...previousTimestampsArray, ...matchedTimestamps]))
+            : matchedTimestamps;
+          const count = timestamps.length;
 
           const userTeam = await Team.findOne({
             battleId: battle._id,
@@ -248,7 +270,6 @@ async function verifyScrobbles() {
           );
 
           // Update battle stats with NEW scrobbles only (not already counted)
-          const previousTimestamps = new Set(streamCount.scrobbleTimestamps || []);
           const newScrobbles = matchedTracks.filter(track => !previousTimestamps.has(track.timestamp));
 
           if (newScrobbles.length > 0) {
