@@ -112,11 +112,12 @@ async function fullSync() {
         count: 0,
         isCheater: false,
         scrobbleTimestamps: [],
+        countingStartedAt: new Date(),
         teamId: null
       });
     }
 
-    const countScrobblesFrom = streamCount.createdAt.getTime();
+    const countScrobblesFrom = (streamCount.countingStartedAt || streamCount.createdAt).getTime();
 
     logger.info('Fetching ALL scrobbles for user', {
       username: user.lastfmUsername,

@@ -1,5 +1,6 @@
 import connectDB from '../../../utils/db';
 import Battle from '../../../models/Battle';
+import BattleStats from '../../../models/BattleStats';
 import { createHandler, withCors } from '../../../lib/middleware';
 import { logger } from '../../../utils/logger';
 
@@ -49,8 +50,32 @@ async function handler(req, res) {
       })),
     }));
 
+    const battleIds = battles.map(battle => battle._id);
+    const battleStats = battleIds.length
+      ? await BattleStats.find({ battleId: { $in: battleIds } }).lean()
+      : [];
+
+    const totalStreamsVerified = battleStats.reduce((sum, stats) => {
+      const memberStreams = Object.values(stats.memberStats || {}).reduce(
+        (memberSum, count) => memberSum + (Number(count) || 0),
+        0
+      );
+
+      return sum + (Number(stats.totalBTSStreams) || 0) + memberStreams;
+    }, 0);
+
+    const metrics = {
+      activeBattles: battlesData.filter(battle => battle.status === 'active').length,
+      totalPlayers: battlesData.reduce((sum, battle) => sum + (battle.participantCount || 0), 0),
+      activePlayers: battlesData
+        .filter(battle => battle.status === 'active')
+        .reduce((sum, battle) => sum + (battle.participantCount || 0), 0),
+      totalStreamsVerified,
+      totalBattlesHosted: battlesData.length,
+    };
+
     // Update cache
-    const response = { battles: battlesData };
+    const response = { battles: battlesData, metrics };
     cache.data = response;
     cache.timestamp = now;
 

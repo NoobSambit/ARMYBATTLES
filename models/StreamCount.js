@@ -27,6 +27,10 @@ const StreamCountSchema = new mongoose.Schema({
   scrobbleTimestamps: [{
     type: Number
   }],
+  countingStartedAt: {
+    type: Date,
+    default: null
+  },
   lastSyncedAt: {
     type: Date,
     default: null

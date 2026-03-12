@@ -14,6 +14,12 @@ module.exports = {
         display: ['var(--font-display)', ...defaultTheme.fontFamily.sans],
       },
       colors: {
+        primary: '#7C3AED',
+        'accent-magenta': '#E83ED3',
+        'accent-cyan': '#00F0FF',
+        'accent-green': '#10B981',
+        'background-dark': '#0A0510',
+        'card-glass': 'rgba(22, 11, 36, 0.6)',
         army: {
           purple: '#7C3AED',
           'purple-light': '#A78BFA',

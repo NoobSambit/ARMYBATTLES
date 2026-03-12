@@ -228,11 +228,12 @@ async function verifyScrobbles() {
               count: 0,
               isCheater: false,
               scrobbleTimestamps: [],
+              countingStartedAt: new Date(),
               teamId: null
             });
           }
 
-          const countScrobblesFrom = streamCount.createdAt.getTime();
+          const countScrobblesFrom = (streamCount.countingStartedAt || streamCount.createdAt).getTime();
 
           const matchedTracks = recentTracks.filter(scrobble => {
             const isInTimeRange =

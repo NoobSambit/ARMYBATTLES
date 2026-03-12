@@ -86,33 +86,27 @@ export default function Navbar() {
 
   return (
     <>
-    <nav className="sticky top-0 z-40 bg-panel/60 backdrop-blur-xl border-b border-border-light/50 shadow-glass">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-18">
-          <div className="flex items-center">
-            <Link href="/" className="flex items-center space-x-3 group">
-              <div className="w-10 h-10 rounded-xl overflow-hidden glow-purple group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
-                <Image
-                  src="https://res.cloudinary.com/dtamgk7i5/image/upload/v1764741224/armybattles-Picsart-BackgroundRemover_fd11rd.png"
-                  alt="ARMYBATTLES Logo"
-                  width={40}
-                  height={40}
-                  className="object-cover"
-                />
-              </div>
-              <span className="font-display tracking-tighter text-2xl font-black gradient-text-army drop-shadow-lg">ARMYBATTLES</span>
+      <nav className="fixed top-0 w-full z-50 glass-nav">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+              <Image
+                src="/armybattles_logo.png"
+                alt="ARMYBATTLES Logo"
+                width={200}
+                height={50}
+                className="h-8 w-auto object-contain"
+                priority
+              />
             </Link>
           </div>
 
-          <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center space-x-1">
+          <div className="hidden md:flex items-center gap-8">
             <Link
               href="/"
               className={cn(
-                'px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300',
-                isActive('/')
-                  ? 'bg-gradient-to-r from-bts-purple/20 to-bts-pink/20 text-white border border-bts-purple/30 shadow-glow-purple'
-                  : 'text-gray-300 hover:text-white hover:bg-panel-hover'
+                'text-sm font-medium transition-colors',
+                isActive('/') ? 'text-accent-cyan' : 'hover:text-accent-cyan'
               )}
             >
               Home
@@ -120,10 +114,8 @@ export default function Navbar() {
             <Link
               href="/battles"
               className={cn(
-                'px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300',
-                isActive('/battles')
-                  ? 'bg-gradient-to-r from-bts-purple/20 to-bts-pink/20 text-white border border-bts-purple/30 shadow-glow-purple'
-                  : 'text-gray-300 hover:text-white hover:bg-panel-hover'
+                'text-sm font-medium transition-colors',
+                isActive('/battles') ? 'text-accent-cyan' : 'hover:text-accent-cyan'
               )}
             >
               Battles
@@ -132,54 +124,47 @@ export default function Navbar() {
               <Link
                 href="/dashboard"
                 className={cn(
-                  'px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300',
-                  isActive('/dashboard')
-                    ? 'bg-gradient-to-r from-bts-purple/20 to-bts-pink/20 text-white border border-bts-purple/30 shadow-glow-purple'
-                    : 'text-gray-300 hover:text-white hover:bg-panel-hover'
+                  'text-sm font-medium transition-colors',
+                  isActive('/dashboard') ? 'text-accent-cyan' : 'hover:text-accent-cyan'
                 )}
               >
                 Dashboard
               </Link>
             )}
+          </div>
 
+          <div className="flex items-center gap-4">
             {!user ? (
-              <div className="flex items-center space-x-3 ml-4">
-                <Link href="/login">
-                  <button className="px-5 py-2.5 text-sm font-semibold text-gray-200 hover:text-white transition-colors duration-300">
-                    Login
+              <>
+                <Link href="/login" className="hidden sm:block text-sm font-medium hover:text-accent-cyan transition-colors">Login</Link>
+                <Link href="/signup">
+                  <button className="bg-accent-magenta hover:bg-opacity-90 text-white px-6 py-2.5 rounded-lg font-bold text-sm neon-magenta-glow transition-all flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm">music_note</span>
+                    Sign Up
                   </button>
                 </Link>
-                <Link href="/signup">
-                  <button className="btn-primary px-6 py-2.5 text-sm">Sign Up</button>
-                </Link>
-              </div>
+              </>
             ) : (
-              <div className="relative ml-4">
+              <div className="relative flex items-center gap-4">
+                <button
+                  onClick={() => setShowDonationModal(true)}
+                  className="hidden sm:block text-sm font-medium hover:text-accent-cyan transition-colors"
+                >
+                  Donate
+                </button>
                 <button
                   onClick={() => setShowDropdown(!showDropdown)}
-                  className="flex items-center space-x-3 px-4 py-2.5 rounded-xl hover:bg-panel-hover border border-transparent hover:border-border-light transition-all duration-300 group"
+                  className="flex items-center gap-2 transition-transform hover:scale-105"
                 >
-                  <div className="w-9 h-9 bg-gradient-to-br from-bts-purple to-bts-deep rounded-xl flex items-center justify-center text-white font-bold shadow-glow-purple group-hover:shadow-glow-purple-lg transition-all duration-300">
+                  <div className="w-10 h-10 rounded-full border-2 border-primary/50 overflow-hidden bg-gradient-to-br from-bts-purple to-bts-deep flex items-center justify-center text-white font-bold">
                     {user.username.charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-gray-200 font-medium">{user.displayName || user.username}</span>
-                  <svg
-                    className={cn(
-                      'w-4 h-4 transition-transform duration-300',
-                      showDropdown && 'rotate-180'
-                    )}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
                 </button>
 
                 {showDropdown && (
-                  <div className="absolute right-0 mt-3 w-64 bg-panel/95 backdrop-blur-xl rounded-2xl shadow-card-glow py-2 border border-border-light animate-slide-down overflow-hidden">
-                    <div className="px-5 py-3 border-b border-border-light">
-                      <p className="text-xs text-muted uppercase tracking-wider font-semibold mb-1">Signed in as</p>
+                  <div className="absolute right-0 top-12 mt-2 w-64 glass-card rounded-2xl shadow-2xl py-2 animate-slide-down overflow-hidden">
+                    <div className="px-5 py-3 border-b border-white/10">
+                      <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Signed in as</p>
                       <p className="text-sm font-bold text-white">{user.username}</p>
                     </div>
                     <button
@@ -195,110 +180,84 @@ export default function Navbar() {
                 )}
               </div>
             )}
-          </div>
 
-          <button
-            onClick={() => setShowDonationModal(true)}
-            className="px-4 py-2 text-sm font-bold bg-bts-pink hover:bg-bts-pink-bright text-white rounded-xl transition-all duration-300 shadow-lg shadow-bts-pink/50 hover:shadow-bts-pink/70 hover:scale-105"
-          >
-            DONATE
-          </button>
-          </div>
-
-          <div className="md:hidden">
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="text-gray-300 hover:text-bts-pink focus:outline-none p-2 rounded-lg hover:bg-panel-hover transition-all duration-300"
-            >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                {isOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
-            </button>
+            <div className="md:hidden flex items-center">
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="text-gray-300 hover:text-accent-cyan focus:outline-none p-2 transition-all duration-300"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  {isOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {isOpen && (
-        <div className="md:hidden border-t border-border-light bg-panel/95 backdrop-blur-xl animate-slide-down">
-          <div className="px-3 pt-3 pb-4 space-y-2">
-            <Link
-              href="/"
-              className={cn(
-                'block px-4 py-3 rounded-xl text-base font-medium transition-all duration-300',
-                isActive('/')
-                  ? 'bg-gradient-to-r from-bts-purple/20 to-bts-pink/20 text-white border border-bts-purple/30 shadow-glow-purple'
-                  : 'text-gray-300 hover:bg-panel-hover hover:text-white'
-              )}
-              onClick={() => setIsOpen(false)}
-            >
-              Home
-            </Link>
-            <Link
-              href="/battles"
-              className={cn(
-                'block px-4 py-3 rounded-xl text-base font-medium transition-all duration-300',
-                isActive('/battles')
-                  ? 'bg-gradient-to-r from-bts-purple/20 to-bts-pink/20 text-white border border-bts-purple/30 shadow-glow-purple'
-                  : 'text-gray-300 hover:bg-panel-hover hover:text-white'
-              )}
-              onClick={() => setIsOpen(false)}
-            >
-              Battles
-            </Link>
-            {user && (
+        {isOpen && (
+          <div className="md:hidden border-t border-white/10 bg-background-dark/95 backdrop-blur-xl animate-slide-down">
+            <div className="px-3 pt-3 pb-4 space-y-2">
               <Link
-                href="/dashboard"
+                href="/"
                 className={cn(
                   'block px-4 py-3 rounded-xl text-base font-medium transition-all duration-300',
-                  isActive('/dashboard')
-                    ? 'bg-gradient-to-r from-bts-purple/20 to-bts-pink/20 text-white border border-bts-purple/30 shadow-glow-purple'
-                    : 'text-gray-300 hover:bg-panel-hover hover:text-white'
+                  isActive('/') ? 'bg-primary/20 text-accent-cyan' : 'text-gray-300 hover:bg-white/5'
                 )}
                 onClick={() => setIsOpen(false)}
               >
-                Dashboard
+                Home
               </Link>
-            )}
-            {!user ? (
-              <>
+              <Link
+                href="/battles"
+                className={cn(
+                  'block px-4 py-3 rounded-xl text-base font-medium transition-all duration-300',
+                  isActive('/battles') ? 'bg-primary/20 text-accent-cyan' : 'text-gray-300 hover:bg-white/5'
+                )}
+                onClick={() => setIsOpen(false)}
+              >
+                Battles
+              </Link>
+              {user && (
                 <Link
-                  href="/login"
-                  className="block px-4 py-3 rounded-xl text-base font-medium text-gray-300 hover:bg-panel-hover hover:text-white transition-all duration-300"
+                  href="/dashboard"
+                  className={cn(
+                    'block px-4 py-3 rounded-xl text-base font-medium transition-all duration-300',
+                    isActive('/dashboard') ? 'bg-primary/20 text-accent-cyan' : 'text-gray-300 hover:bg-white/5'
+                  )}
                   onClick={() => setIsOpen(false)}
                 >
-                  Login
+                  Dashboard
                 </Link>
-                <Link
-                  href="/signup"
-                  className="block px-4 py-3 rounded-xl text-base font-bold bg-gradient-to-r from-bts-purple to-bts-deep text-white shadow-glow-purple transition-all duration-300"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Sign Up
-                </Link>
-              </>
-            ) : (
+              )}
+              {!user ? (
+                <>
+                  <Link
+                    href="/login"
+                    className="block px-4 py-3 rounded-xl text-base font-medium text-gray-300 hover:bg-white/5 transition-all duration-300"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Login
+                  </Link>
+                </>
+              ) : null}
               <button
                 onClick={() => {
-                  handleLogout().catch(() => {});
                   setIsOpen(false);
+                  setShowDonationModal(true);
                 }}
-                className="w-full text-left flex items-center gap-2 px-4 py-3 rounded-xl text-base font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-300"
+                className="w-full text-left px-4 py-3 rounded-xl text-base font-medium text-gray-300 hover:bg-white/5 transition-all duration-300"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                Logout
+                Donate
               </button>
-            )}
+            </div>
           </div>
-        </div>
-      )}
-    </nav>
-    <DonationModal isOpen={showDonationModal} onClose={() => setShowDonationModal(false)} />
+        )}
+      </nav>
+      <DonationModal isOpen={showDonationModal} onClose={() => setShowDonationModal(false)} />
     </>
   );
 }

@@ -1,5 +1,6 @@
 import connectDB from '../../../utils/db';
 import Battle from '../../../models/Battle';
+import StreamCount from '../../../models/StreamCount';
 import User from '../../../models/User';
 import mongoose from 'mongoose';
 import { createHandler, withCors, withRateLimit, withAuth, withValidation } from '../../../lib/middleware';
@@ -54,6 +55,8 @@ async function handler(req, res) {
       });
     }
 
+    const joinedAt = new Date();
+
     const result = await Battle.findByIdAndUpdate(
       battleId,
       { $addToSet: { participants: req.userId } },
@@ -61,6 +64,29 @@ async function handler(req, res) {
     );
 
     const isNewParticipant = result.participants.length > battle.participants.length;
+    const isParticipant = result.participants.some(p => p.toString() === req.userId);
+
+    if (isParticipant) {
+      await StreamCount.findOneAndUpdate(
+        { battleId, userId: req.userId },
+        {
+          $setOnInsert: {
+            count: 0,
+            isCheater: false,
+            teamId: null,
+            scrobbleTimestamps: [],
+            countingStartedAt: joinedAt,
+            lastSyncedAt: null,
+            lastSyncType: null,
+            lastSyncedBy: null
+          }
+        },
+        {
+          upsert: true,
+          new: true
+        }
+      );
+    }
 
     if (isNewParticipant) {
       logger.info('User joined battle', { userId: req.userId, battleId, battleName: battle.name });

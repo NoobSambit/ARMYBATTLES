@@ -102,9 +102,10 @@ async function handler(req, res) {
             console.log(`Processing ${user.username} (${user.lastfmUsername})...`);
 
             // Fetch their scrobbles for the battle period
+            const countScrobblesFrom = (streamCount.countingStartedAt || streamCount.createdAt).getTime();
             const recentTracks = await getRecentTracks(
               user.lastfmUsername,
-              Math.max(battle.startTime.getTime(), streamCount.createdAt.getTime()),
+              Math.max(battle.startTime.getTime(), countScrobblesFrom),
               battle.endTime.getTime(),
               { maxPages: 10, delayBetweenRequests: 200 }
             );
@@ -112,7 +113,7 @@ async function handler(req, res) {
             // Match tracks against playlist
             const matchedTracks = recentTracks.filter(scrobble => {
               const isInTimeRange =
-                scrobble.timestamp >= Math.max(battle.startTime.getTime(), streamCount.createdAt.getTime()) &&
+                scrobble.timestamp >= Math.max(battle.startTime.getTime(), countScrobblesFrom) &&
                 scrobble.timestamp <= battle.endTime.getTime();
 
               return isInTimeRange && matchTrack(scrobble, battle.playlistTracks);

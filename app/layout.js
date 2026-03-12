@@ -1,7 +1,7 @@
 import './globals.css'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
-import { Inter, Space_Grotesk } from 'next/font/google'
+import { Inter, Outfit } from 'next/font/google'
 
 export const metadata = {
   title: 'ARMYBATTLES',
@@ -36,12 +36,15 @@ export const metadata = {
 }
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-text' })
-const grotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-display' })
+const outfit = Outfit({ subsets: ['latin'], variable: '--font-display' })
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className="dark">
-      <body className={`antialiased bg-surface ${inter.variable} ${grotesk.variable} font-sans flex flex-col min-h-screen`}>
+      <head>
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+      </head>
+      <body className={`antialiased bg-surface ${inter.variable} ${outfit.variable} font-sans flex flex-col min-h-screen`}>
         <Navbar />
         <main className="flex-1">
           {children}

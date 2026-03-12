@@ -330,14 +330,14 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
         // Now process tracks for each battle this user is in
         for (const battle of participantBattles) {
 
-          // Get existing StreamCount to determine when user joined the battle
+          // Get the persisted counting boundary for this participant.
           let streamCount = await StreamCount.findOne({
             battleId: battle._id,
             userId: participant._id
           });
 
-          // Create StreamCount if it doesn't exist
-          // The createdAt timestamp will capture when user first joined (first verification after join)
+          // Join flow should create this record up front.
+          // If it is missing, initialize a conservative boundary now.
           if (!streamCount) {
             streamCount = await StreamCount.create({
               battleId: battle._id,
@@ -345,13 +345,13 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
               count: 0,
               isCheater: false,
               scrobbleTimestamps: [],
+              countingStartedAt: new Date(),
               teamId: null
             });
           }
 
-          // Always use createdAt as the join time boundary
-          // This ensures consistent behavior: scrobbles are only counted from when user joined
-          const countScrobblesFrom = streamCount.createdAt.getTime();
+          // Fall back to createdAt for older records created before countingStartedAt existed.
+          const countScrobblesFrom = (streamCount.countingStartedAt || streamCount.createdAt).getTime();
 
           // Only count scrobbles from AFTER the user joined
           // Use Math.max to ensure we don't count scrobbles before battle start OR before user joined

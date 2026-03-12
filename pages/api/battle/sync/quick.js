@@ -119,6 +119,7 @@ async function handler(req, res) {
         count: 0,
         isCheater: false,
         scrobbleTimestamps: [],
+        countingStartedAt: new Date(),
         teamId: null,
         lastSyncedAt: null,
         lastSyncType: null,
@@ -142,7 +143,7 @@ async function handler(req, res) {
     }
 
     // Fetch scrobbles with pagination (max 4 pages = 800 tracks)
-    const countScrobblesFrom = streamCount.createdAt.getTime();
+    const countScrobblesFrom = (streamCount.countingStartedAt || streamCount.createdAt).getTime();
     const fetchResult = await getRecentTracks(
       user.lastfmUsername,
       Math.max(battle.startTime.getTime(), countScrobblesFrom),

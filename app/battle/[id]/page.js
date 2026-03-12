@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import Badge from '@/components/Badge';
-import LoadingSpinner from '@/components/LoadingSpinner';
 import TeamCard from '@/components/TeamCard';
 import TeamDetailsModal from '@/components/TeamDetailsModal';
 import BattleJoinModal from '@/components/BattleJoinModal';
@@ -17,7 +15,6 @@ import SyncModal from '@/components/SyncModal';
 import { formatDate, getBattleStatus } from '@/lib/utils';
 
 export default function BattlePage({ params }) {
-  const router = useRouter();
   const [battle, setBattle] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
   const [error, setError] = useState('');
@@ -53,18 +50,20 @@ export default function BattlePage({ params }) {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
 
-    if (!token) {
-      router.push('/login');
-      return;
-    }
-
-    if (userData) {
+    if (token && userData) {
       setCurrentUser(JSON.parse(userData));
+    } else {
+      setCurrentUser(null);
     }
 
     const battleId = params.id;
     fetchLeaderboard(battleId);
-    checkUserInBattle(battleId);
+    if (token && userData) {
+      checkUserInBattle(battleId);
+    } else {
+      setIsHost(false);
+      setUserInBattle(false);
+    }
 
     // Poll for leaderboard updates every 2 minutes (120 seconds)
     // Optimized for Netlify serverless - matches backend verification cycle
@@ -95,7 +94,7 @@ export default function BattlePage({ params }) {
       }
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [params.id, router, battle?.status]);
+  }, [params.id, battle?.status]);
 
   useEffect(() => {
     // Refetch when filter changes
@@ -323,7 +322,7 @@ export default function BattlePage({ params }) {
       alert('You have successfully left the battle!');
 
       // Redirect to dashboard after leaving
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
 
     } catch (err) {
       alert(`Error: ${err.message}`);
@@ -347,32 +346,50 @@ export default function BattlePage({ params }) {
 
   if (!battle) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" />
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background-dark">
+        <div className="flex flex-col items-center justify-center py-40 animate-pulse-slow">
+          <div className="relative w-36 h-36 mb-10">
+            <div className="absolute inset-0 border-4 border-bts-purple/10 rounded-full"></div>
+            <div className="absolute inset-0 border-[5px] border-bts-pink rounded-full border-t-transparent animate-spin" style={{ animationDuration: '1.2s' }}></div>
+            <div className="absolute inset-3 border-4 border-bts-blue/40 rounded-full border-b-transparent animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }}></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="material-symbols-outlined text-5xl text-bts-purple animate-pulse drop-shadow-[0_0_15px_rgba(139,92,246,0.5)]">
+                crisis_alert
+              </span>
+            </div>
+          </div>
+          <h3 className="text-3xl font-display font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-bts-purple to-bts-pink mb-4 uppercase drop-shadow-sm">
+            Loading Arena
+          </h3>
+          <p className="text-bts-blue-light uppercase tracking-[0.3em] text-sm font-bold flex items-center gap-3">
+            <span className="w-2 h-2 rounded-full bg-bts-blue animate-ping"></span>
+            Connecting...
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-12 min-h-screen">
       {/* Back button */}
       <Link href="/dashboard">
-        <button className="group flex items-center gap-2 rounded-lg border border-purple-500/20 bg-purple-950/30 px-4 py-2.5 font-semibold text-purple-300 backdrop-blur-sm transition-all hover:border-purple-500/40 hover:bg-purple-900/40 hover:text-purple-200 mb-8">
-          <svg className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        <button className="group flex items-center gap-2 rounded-xl border border-white/5 bg-white/[0.02] px-5 py-2.5 font-bold text-gray-400 backdrop-blur-md transition-all duration-300 hover:border-[#7b2cbf]/40 hover:bg-[#7b2cbf]/10 hover:text-white hover:shadow-[0_0_20px_rgba(123,44,191,0.15)] mb-10">
+          <svg className="w-4 h-4 group-hover:-translate-x-1.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
-          Back to Dashboard
+          <span className="tracking-wide text-xs sm:text-sm uppercase">Command Center</span>
         </button>
       </Link>
 
       {/* Battle header */}
-      <div className="mb-10 animate-slide-up">
-        <div className="flex flex-col gap-4 mb-6">
+      <div className="mb-10 animate-slide-up relative z-10">
+        <div className="flex flex-col gap-6 mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-[#f3e8ff] via-[#d8b4fe] to-[#9333ea] drop-shadow-[0_4px_30px_rgba(168,85,247,0.4)]">
               {battle.name}
             </h1>
-            <Badge status={battle.status} className="text-base self-start sm:self-auto" />
+            <Badge status={battle.status} className="text-base self-start sm:self-auto shadow-[0_0_15px_rgba(123,44,191,0.2)]" />
           </div>
           {/* Battle playlist CTA + embed */}
           {battle.spotifyPlaylist && (
@@ -384,96 +401,107 @@ export default function BattlePage({ params }) {
               // Use the large embed style requested
               const playlistEmbedUrl = `https://open.spotify.com/embed/playlist/${playlistId}?utm_source=generator&theme=0`;
               return (
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-[#1DB954]/10 border border-[#1DB954]/40 flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-[#1DB954]"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-[#1DB954]/10 border border-[#1DB954]/40 flex items-center justify-center">
+                        <svg
+                          className="w-5 h-5 text-[#1DB954]"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                        >
+                          <path
+                            fill="currentColor"
+                            d="M12 2a10 10 0 1010 10A10.011 10.011 0 0012 2zm4.53 14.71a.75.75 0 01-1.03.24 8.23 8.23 0 00-4.07-1.09 8.37 8.37 0 00-2.86.49.75.75 0 11-.5-1.41 9.87 9.87 0 013.36-.57 9.7 9.7 0 014.79 1.29.75.75 0 01.31 1.05zm1.43-3.02a.94.94 0 01-1.29.31 11.42 11.42 0 00-5.4-1.46 11.18 11.18 0 00-3.68.6.94.94 0 11-.6-1.78 12.98 12.98 0 014.28-.7 13.3 13.3 0 016.3 1.7.94.94 0 01.39 1.33zm.13-3.14a1.13 1.13 0 01-1.54.37 13.93 13.93 0 00-6.68-1.81 13.6 13.6 0 00-4.39.72 1.13 1.13 0 11-.73-2.14 15.85 15.85 0 015.11-.83 16.17 16.17 0 017.76 2.1 1.13 1.13 0 01.47 1.59z"
+                          />
+                        </svg>
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+                          Battle Playlist
+                        </p>
+                        <p className="text-sm text-gray-300">
+                          Queue this playlist on Spotify while you stream for scrobbles.
+                        </p>
+                      </div>
+                    </div>
+                    <a
+                      href={playlistUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center px-4 py-2.5 rounded-full bg-[#1DB954] text-sm font-semibold text-black shadow-[0_0_30px_rgba(29,185,84,0.65)] hover:brightness-110 transition-all duration-200 w-full sm:w-auto"
                     >
-                      <path
-                        fill="currentColor"
-                        d="M12 2a10 10 0 1010 10A10.011 10.011 0 0012 2zm4.53 14.71a.75.75 0 01-1.03.24 8.23 8.23 0 00-4.07-1.09 8.37 8.37 0 00-2.86.49.75.75 0 11-.5-1.41 9.87 9.87 0 013.36-.57 9.7 9.7 0 014.79 1.29.75.75 0 01.31 1.05zm1.43-3.02a.94.94 0 01-1.29.31 11.42 11.42 0 00-5.4-1.46 11.18 11.18 0 00-3.68.6.94.94 0 11-.6-1.78 12.98 12.98 0 014.28-.7 13.3 13.3 0 016.3 1.7.94.94 0 01.39 1.33zm.13-3.14a1.13 1.13 0 01-1.54.37 13.93 13.93 0 00-6.68-1.81 13.6 13.6 0 00-4.39.72 1.13 1.13 0 11-.73-2.14 15.85 15.85 0 015.11-.83 16.17 16.17 0 017.76 2.1 1.13 1.13 0 01.47 1.59z"
-                      />
-                    </svg>
+                      <span className="mr-2">Open on Spotify</span>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M5 12h13M12 5l7 7-7 7"
+                        />
+                      </svg>
+                    </a>
                   </div>
-                  <div className="space-y-0.5">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
-                      Battle Playlist
-                    </p>
-                    <p className="text-sm text-gray-300">
-                      Queue this playlist on Spotify while you stream for scrobbles.
-                    </p>
+                  <div className="rounded-xl overflow-hidden bg-black shadow-lg">
+                    <iframe
+                      src={playlistEmbedUrl}
+                      width="100%"
+                      height="352"
+                      frameBorder="0"
+                      allowfullscreen=""
+                      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                      loading="lazy"
+                      style={{ borderRadius: '12px' }}
+                      title={`${battle.name} playlist`}
+                    />
                   </div>
                 </div>
-                <a
-                  href={playlistUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-full bg-[#1DB954] text-sm font-semibold text-black shadow-[0_0_30px_rgba(29,185,84,0.65)] hover:brightness-110 transition-all duration-200 w-full sm:w-auto"
-                >
-                  <span className="mr-2">Open on Spotify</span>
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5 12h13M12 5l7 7-7 7"
-                    />
-                  </svg>
-                </a>
-              </div>
-              <div className="rounded-xl overflow-hidden bg-black shadow-lg">
-                <iframe
-                  src={playlistEmbedUrl}
-                  width="100%"
-                  height="352"
-                  frameBorder="0"
-                  allowfullscreen=""
-                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                  loading="lazy"
-                  style={{ borderRadius: '12px' }}
-                  title={`${battle.name} playlist`}
-                />
-              </div>
-            </div>
               );
             })()
           )}
-          <div className="flex flex-wrap items-center gap-2">
-            {!userInBattle && battle.status !== 'ended' && (
+          <div className="flex flex-wrap items-center gap-3">
+            {currentUser && !userInBattle && battle.status !== 'ended' && (
               <button
                 onClick={() => setJoinModalOpen(true)}
-                className="px-6 py-3 rounded-lg font-bold transition-all duration-200 bg-purple-600 text-white hover:bg-purple-700 border border-purple-500/50 shadow-lg hover:shadow-xl hover:scale-105"
+                className="group relative overflow-hidden px-8 py-3.5 rounded-xl font-black transition-all duration-300 bg-[#7b2cbf]/10 text-[#c77dff] hover:text-white border border-[#7b2cbf]/40 hover:border-[#c77dff] shadow-lg hover:shadow-[0_0_30px_rgba(157,78,221,0.3)] hover:-translate-y-1"
               >
-                Join Battle
+                <div className="absolute inset-0 w-0 bg-gradient-to-r from-[#7b2cbf] to-[#5a189a] transition-all duration-500 ease-out group-hover:w-full z-0"></div>
+                <span className="relative z-10 flex items-center gap-2 tracking-widest uppercase">
+                  Join Battle
+                </span>
               </button>
+            )}
+            {!currentUser && battle.status !== 'ended' && (
+              <Link
+                href="/login"
+                className="px-6 py-3.5 rounded-xl font-bold transition-all duration-300 bg-white/5 text-gray-300 hover:text-white hover:bg-white/10 border border-white/5 hover:border-white/20 flex items-center gap-2.5 tracking-wide text-sm sm:text-base hover:-translate-y-1 shadow-sm hover:shadow-lg"
+              >
+                Log In To Join
+              </Link>
             )}
             <button
               onClick={() => setStatsModalOpen(true)}
-              className="px-4 py-3 rounded-lg font-bold transition-all duration-200 bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 border border-purple-500/50 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2 text-sm sm:text-base"
+              className="px-6 py-3.5 rounded-xl font-bold transition-all duration-300 bg-white/5 text-gray-300 hover:text-white hover:bg-white/10 border border-white/5 hover:border-white/20 flex items-center gap-2.5 tracking-wide text-sm sm:text-base hover:-translate-y-1 shadow-sm hover:shadow-lg"
               title="View BTS & member statistics"
             >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              <svg className="h-5 w-5 text-[#c77dff]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
-              <span className="hidden sm:inline">Stats</span>
-              <span className="sm:hidden">📊</span>
+              <span className="hidden sm:inline">Analytics</span>
+              <span className="sm:hidden">Stats</span>
             </button>
             {userInBattle && battle.status === 'ended' && (
               <button
                 onClick={() => setScorecardModalOpen(true)}
-                className="btn-primary px-6 py-3 flex items-center gap-2 text-sm sm:text-base"
+                className="px-6 py-3.5 rounded-xl font-bold transition-all duration-300 bg-[#5a189a]/20 text-[#c77dff] hover:text-white border border-[#5a189a]/50 hover:border-[#9d4edd] hover:bg-[#7b2cbf]/30 flex items-center gap-2.5 tracking-wide text-sm sm:text-base hover:-translate-y-1 shadow-md hover:shadow-[0_0_20px_rgba(157,78,221,0.2)]"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 <span>View Scorecard</span>
               </button>
@@ -482,186 +510,183 @@ export default function BattlePage({ params }) {
               <button
                 onClick={() => setSyncModalOpen(true)}
                 disabled={syncLoading}
-                className="px-4 py-3 rounded-lg font-bold transition-all duration-200 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed border border-blue-500/50 shadow-lg hover:shadow-xl hover:scale-105 disabled:hover:scale-100 flex items-center gap-2 text-sm sm:text-base"
+                className="px-6 py-3.5 rounded-xl font-bold transition-all duration-300 bg-blue-600/10 text-blue-400 hover:text-white hover:bg-blue-600/20 border border-blue-500/30 hover:border-blue-400 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-[0_0_20px_rgba(59,130,246,0.2)] disabled:hover:scale-100 flex items-center gap-2.5 text-sm sm:text-base hover:-translate-y-1"
                 title="Manually sync your scrobbles"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                <span className="hidden sm:inline">{syncLoading ? 'Syncing...' : 'Sync'}</span>
-                <span className="sm:hidden">{syncLoading ? '...' : '🔄'}</span>
+                <span className="hidden sm:inline tracking-wide">{syncLoading ? 'SYNCING...' : 'SYNC RADAR'}</span>
+                <span className="sm:hidden">{syncLoading ? '...' : 'SYNC'}</span>
               </button>
             )}
             {userInBattle && !isHost && battle.status !== 'ended' && (
               <button
                 onClick={handleLeaveBattle}
                 disabled={leavingBattle}
-                className="px-4 py-3 rounded-lg font-bold transition-all duration-200 bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed border border-orange-500/50 shadow-lg hover:shadow-xl hover:scale-105 disabled:hover:scale-100 flex items-center gap-2 text-sm sm:text-base"
+                className="px-5 py-3.5 rounded-xl font-bold transition-all duration-300 bg-red-900/20 text-red-400 hover:text-white hover:bg-red-800/40 border border-red-500/20 hover:border-red-500/50 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-[0_0_20px_rgba(239,68,68,0.2)] flex items-center gap-2.5 text-sm sm:text-base hover:-translate-y-1 ml-auto"
                 title="Leave this battle"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
-                <span className="hidden sm:inline">{leavingBattle ? 'Leaving...' : 'Leave Battle'}</span>
-                <span className="sm:hidden">{leavingBattle ? '...' : 'Leave'}</span>
+                <span className="hidden sm:inline">Leave</span>
               </button>
             )}
             {isHost && (
-              <>
+              <div className="flex gap-2 ml-auto">
                 {battle.status !== 'ended' && (
                   <>
                     <button
                       onClick={() => setExtendModalOpen(true)}
-                      className="px-4 py-3 rounded-lg font-bold transition-all duration-200 bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1.5 text-sm sm:text-base border border-blue-500/50 shadow-lg hover:shadow-xl hover:scale-105"
+                      className="px-5 py-3.5 rounded-xl font-bold transition-all duration-300 bg-white/5 text-gray-300 hover:text-white border border-white/10 hover:border-white/30 hover:bg-white/10 flex items-center gap-2 text-sm sm:text-base shadow-md hover:-translate-y-1"
                     >
-                      <span>⏰</span>
+                      <span className="material-symbols-outlined text-xl">update</span>
                       <span className="hidden sm:inline">Extend</span>
                     </button>
                     <button
                       onClick={handleEndBattle}
                       disabled={endingBattle}
-                      className="px-4 py-3 rounded-lg font-bold transition-all duration-200 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base border border-red-500/50 shadow-lg hover:shadow-xl hover:scale-105 disabled:hover:scale-100"
+                      className="px-5 py-3.5 rounded-xl font-bold transition-all duration-300 bg-red-900/20 text-red-500 hover:text-white hover:bg-red-600 border border-red-500/30 hover:border-red-500 shadow-md hover:shadow-[0_0_20px_rgba(239,68,68,0.3)] disabled:opacity-50 text-sm sm:text-base hover:-translate-y-1"
                     >
-                      {endingBattle ? 'Ending...' : 'End Battle'}
+                      {endingBattle ? 'ABORTING...' : 'ABORT'}
                     </button>
                   </>
                 )}
-              </>
+              </div>
             )}
           </div>
         </div>
-        <div className="h-1 w-32 bg-purple-600 rounded-full mb-2" />
+        <div className="h-1 w-32 bg-gradient-to-r from-[#c77dff] to-[#5a189a] rounded-full mb-2 shadow-[0_0_10px_rgba(157,78,221,0.5)]" />
       </div>
 
       {/* Sync Status Messages */}
-      {(syncError || syncSuccess) && (
-        <div className={`mb-6 p-4 rounded-lg border ${
-          syncError
+      {
+        (syncError || syncSuccess) && (
+          <div className={`mb-6 p-4 rounded-lg border ${syncError
             ? 'bg-red-500/10 border-red-500/25 text-red-300'
             : 'bg-green-500/10 border-green-500/25 text-green-300'
-        } animate-slide-up`}>
-          <div className="flex items-center gap-2">
-            {syncError && (
-              <>
-                <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                <span className="font-semibold">{syncError}</span>
-              </>
-            )}
-            {syncSuccess && (
-              <>
-                <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                <span className="font-semibold">{syncSuccess}</span>
-              </>
-            )}
+            } animate-slide-up`}>
+            <div className="flex items-center gap-2">
+              {syncError && (
+                <>
+                  <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <span className="font-semibold">{syncError}</span>
+                </>
+              )}
+              {syncSuccess && (
+                <>
+                  <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="font-semibold">{syncSuccess}</span>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Stats cards */}
-      <div className="grid grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-10">
-        <div className="group relative overflow-hidden rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-950/40 to-purple-900/30 p-3 backdrop-blur-sm transition-all hover:border-purple-500/40 md:p-6 animate-scale-in">
-          <div className="flex flex-col md:flex-row items-center md:gap-4 text-center md:text-left">
-            <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg bg-purple-500/20 border border-purple-500/40 flex items-center justify-center mb-2 md:mb-0 shadow-lg shadow-purple-500/20">
-              <svg className="w-5 h-5 md:w-7 md:h-7 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+      <div className="grid grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-12 relative z-10">
+        <div className="group relative overflow-hidden rounded-2xl border border-white/5 bg-[#090b14] p-4 backdrop-blur-sm transition-all hover:border-[#7b2cbf]/30 md:p-7 animate-scale-in shadow-lg">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#7b2cbf]/5 rounded-full blur-[40px] pointer-events-none group-hover:bg-[#7b2cbf]/10 transition-colors"></div>
+          <div className="relative flex flex-col items-center md:items-start md:gap-3 text-center md:text-left">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-center mb-3 md:mb-1">
+              <span className="material-symbols-outlined text-[1.2rem] md:text-[1.5rem] text-gray-400 group-hover:text-[#c77dff] transition-colors">schedule</span>
             </div>
             <div>
-              <h3 className="text-[10px] md:text-xs font-bold text-purple-400/60 uppercase tracking-wider mb-0.5 md:mb-1">Start</h3>
-              <p className="text-[10px] sm:text-xs md:text-base font-black text-white leading-tight">
+              <h3 className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 group-hover:text-[#c77dff]/80 transition-colors">Start</h3>
+              <p className="text-xs sm:text-sm md:text-base font-black text-gray-200 group-hover:text-white transition-colors">
                 {formatDate(battle.startTime)}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="group relative overflow-hidden rounded-xl border border-pink-500/20 bg-gradient-to-br from-pink-950/40 to-pink-900/30 p-3 backdrop-blur-sm transition-all hover:border-pink-500/40 md:p-6 animate-scale-in delay-75">
-          <div className="flex flex-col md:flex-row items-center md:gap-4 text-center md:text-left">
-            <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg bg-pink-500/20 border border-pink-500/40 flex items-center justify-center mb-2 md:mb-0 shadow-lg shadow-pink-500/20">
-              <svg className="w-5 h-5 md:w-7 md:h-7 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+        <div className="group relative overflow-hidden rounded-2xl border border-white/5 bg-[#090b14] p-4 backdrop-blur-sm transition-all hover:border-[#9d4edd]/30 md:p-7 animate-scale-in delay-75 shadow-lg">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#9d4edd]/5 rounded-full blur-[40px] pointer-events-none group-hover:bg-[#9d4edd]/10 transition-colors"></div>
+          <div className="relative flex flex-col items-center md:items-start md:gap-3 text-center md:text-left">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-center mb-3 md:mb-1">
+              <span className="material-symbols-outlined text-[1.2rem] md:text-[1.5rem] text-gray-400 group-hover:text-[#e0aaff] transition-colors">flag</span>
             </div>
             <div>
-              <h3 className="text-[10px] md:text-xs font-bold text-pink-400/60 uppercase tracking-wider mb-0.5 md:mb-1">End</h3>
-              <p className="text-[10px] sm:text-xs md:text-base font-black text-white leading-tight">
+              <h3 className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 group-hover:text-[#e0aaff]/80 transition-colors">End</h3>
+              <p className="text-xs sm:text-sm md:text-base font-black text-gray-200 group-hover:text-white transition-colors">
                 {formatDate(battle.endTime)}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="group relative overflow-hidden rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-950/40 to-purple-900/30 p-3 backdrop-blur-sm transition-all hover:border-purple-500/40 md:p-6 animate-scale-in delay-150">
-          <div className="flex flex-col md:flex-row items-center md:gap-4 text-center md:text-left">
-            <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg bg-purple-500/20 border border-purple-500/40 flex items-center justify-center mb-2 md:mb-0 shadow-lg shadow-purple-500/20">
-              <svg className="w-5 h-5 md:w-7 md:h-7 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
+        <div className="group relative overflow-hidden rounded-2xl border border-white/5 bg-[#090b14] p-4 backdrop-blur-sm transition-all hover:border-[#5a189a]/40 md:p-7 animate-scale-in delay-150 shadow-lg">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#5a189a]/5 rounded-full blur-[40px] pointer-events-none group-hover:bg-[#5a189a]/10 transition-colors"></div>
+          <div className="relative flex flex-col items-center md:items-start md:gap-3 text-center md:text-left">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-center mb-3 md:mb-1">
+              <span className="material-symbols-outlined text-[1.2rem] md:text-[1.5rem] text-gray-400 group-hover:text-[#d8b4fe] transition-colors">group</span>
             </div>
             <div>
-              <h3 className="text-[10px] md:text-xs font-bold text-purple-400/60 uppercase tracking-wider mb-0.5 md:mb-1">Joined</h3>
-              <p className="text-sm md:text-base font-black text-white">{battle.participantCount}</p>
+              <h3 className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 group-hover:text-[#d8b4fe]/80 transition-colors">Joined</h3>
+              <p className="text-xl md:text-2xl font-black text-gray-200 group-hover:text-white transition-colors">{battle.participantCount}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Leaderboard card */}
-      <div className="relative overflow-hidden rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-950/40 to-purple-900/20 p-6 md:p-8 backdrop-blur-sm mb-6 animate-slide-up">
-        <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-purple-500/10 blur-3xl"></div>
-        <div className="relative flex items-center justify-between mb-8">
+      <div className="relative overflow-hidden rounded-3xl border border-[#7b2cbf]/20 bg-[#090b14] p-5 md:p-8 shadow-2xl mb-8 animate-slide-up">
+        <div className="absolute -top-32 -right-32 h-64 w-64 rounded-full bg-[#7b2cbf]/10 blur-[80px] pointer-events-none"></div>
+        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <h2 className="text-2xl md:text-3xl font-black tracking-tight mb-0 text-white">
-              Live Leaderboard
+            <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-gray-100 to-gray-400 mb-1">
+              LIVE LEADERBOARD
             </h2>
-            <p className="text-sm text-purple-300/60 mt-1 font-semibold">Real-time battle standings</p>
+            <p className="text-sm text-[#c77dff]/70 font-semibold tracking-wide uppercase">Real-time stream stats</p>
           </div>
           {battle.status === 'active' && (
-            <div className="flex items-center gap-3 px-4 py-2.5 bg-green-500/10 border border-green-500/40 rounded-lg backdrop-blur-sm shadow-lg shadow-green-500/10">
-              <span className="inline-block h-3 w-3 rounded-full bg-green-400 animate-pulse shadow-lg shadow-green-400/50"></span>
-              <span className="text-sm font-bold text-green-300 uppercase tracking-wider">Live</span>
+            <div className="flex items-center gap-2.5 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-xl backdrop-blur-sm self-start">
+              <span className="inline-block h-2 w-2 rounded-full bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.8)]"></span>
+              <span className="text-xs font-bold text-green-400 uppercase tracking-widest">Live Sync</span>
             </div>
           )}
         </div>
 
         {/* Filter Tabs */}
-        <div className="relative flex gap-2 mb-6 flex-wrap">
+        <div className="relative flex gap-2 mb-8 flex-wrap p-1.5 bg-white/5 rounded-xl self-start w-fit">
           <button
             onClick={() => setLeaderboardFilter('all')}
             className={cn(
-              'px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg font-bold transition-all duration-200 text-sm sm:text-base',
+              'px-5 py-2.5 rounded-lg font-bold transition-all duration-300 text-xs sm:text-sm tracking-wide',
               leaderboardFilter === 'all'
-                ? 'bg-purple-600 text-white shadow-lg border border-purple-500/50'
-                : 'bg-purple-950/30 text-purple-300/60 hover:text-purple-200 hover:bg-purple-900/40 border border-purple-500/20 hover:border-purple-500/40'
+                ? 'bg-[#7b2cbf] text-white shadow-[0_0_15px_rgba(123,44,191,0.4)]'
+                : 'bg-transparent text-gray-400 hover:text-white hover:bg-white/5'
             )}
           >
-            All Participants
+            ALL
           </button>
           <button
             onClick={() => setLeaderboardFilter('teams')}
             className={cn(
-              'px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg font-bold transition-all duration-200 text-sm sm:text-base',
+              'px-5 py-2.5 rounded-lg font-bold transition-all duration-300 text-xs sm:text-sm tracking-wide',
               leaderboardFilter === 'teams'
-                ? 'bg-purple-600 text-white shadow-lg border border-purple-500/50'
-                : 'bg-purple-950/30 text-purple-300/60 hover:text-purple-200 hover:bg-purple-900/40 border border-purple-500/20 hover:border-purple-500/40'
+                ? 'bg-[#7b2cbf] text-white shadow-[0_0_15px_rgba(123,44,191,0.4)]'
+                : 'bg-transparent text-gray-400 hover:text-white hover:bg-white/5'
             )}
           >
-            Teams Only
+            TEAMS
           </button>
           <button
             onClick={() => setLeaderboardFilter('solo')}
             className={cn(
-              'px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg font-bold transition-all duration-200 text-sm sm:text-base',
+              'px-5 py-2.5 rounded-lg font-bold transition-all duration-300 text-xs sm:text-sm tracking-wide',
               leaderboardFilter === 'solo'
-                ? 'bg-purple-600 text-white shadow-lg border border-purple-500/50'
-                : 'bg-purple-950/30 text-purple-300/60 hover:text-purple-200 hover:bg-purple-900/40 border border-purple-500/20 hover:border-purple-500/40'
+                ? 'bg-[#7b2cbf] text-white shadow-[0_0_15px_rgba(123,44,191,0.4)]'
+                : 'bg-transparent text-gray-400 hover:text-white hover:bg-white/5'
             )}
           >
-            Solo Players
+            SOLO
           </button>
         </div>
 
@@ -678,16 +703,16 @@ export default function BattlePage({ params }) {
           </div>
         ) : (
           <div className="space-y-2">
-             {/* Leaderboard Header */}
-             <div className="hidden md:flex items-center justify-between px-6 py-2 text-xs font-semibold text-muted uppercase tracking-wider">
-               <div className="flex items-center gap-4 flex-1">
-                 <span className="w-12 text-center">Rank</span>
-                 <span>Participant</span>
-               </div>
-               <div className="flex items-center gap-4 w-32 justify-end">
-                 <span>Score</span>
-               </div>
-             </div>
+            {/* Leaderboard Header */}
+            <div className="hidden md:flex items-center justify-between px-6 py-2 text-xs font-semibold text-muted uppercase tracking-wider">
+              <div className="flex items-center gap-4 flex-1">
+                <span className="w-12 text-center">Rank</span>
+                <span>Participant</span>
+              </div>
+              <div className="flex items-center gap-4 w-32 justify-end">
+                <span>Score</span>
+              </div>
+            </div>
 
             {leaderboard.map((entry, index) => {
               const rank = index + 1;
@@ -712,36 +737,35 @@ export default function BattlePage({ params }) {
                       rank === 1
                         ? 'border-yellow-500/50 bg-gradient-to-r from-yellow-600/20 to-yellow-500/10 shadow-lg shadow-yellow-500/10'
                         : rank === 2
-                        ? 'border-gray-400/50 bg-gradient-to-r from-gray-500/20 to-gray-400/10 shadow-lg shadow-gray-500/10'
-                        : rank === 3
-                        ? 'border-orange-500/50 bg-gradient-to-r from-orange-600/20 to-orange-500/10 shadow-lg shadow-orange-500/10'
-                        : entry.isCheater
-                        ? 'border-red-500/30 bg-red-950/20'
-                        : 'border-purple-500/20 bg-purple-950/30 hover:border-purple-500/40'
+                          ? 'border-gray-400/50 bg-gradient-to-r from-gray-500/20 to-gray-400/10 shadow-lg shadow-gray-500/10'
+                          : rank === 3
+                            ? 'border-orange-500/30 bg-orange-900/10 hover:border-orange-500/50 hover:shadow-[0_0_20px_rgba(249,115,22,0.1)]'
+                            : entry.isCheater
+                              ? 'border-red-500/30 bg-red-950/20'
+                              : 'border-white/[0.05] bg-white/[0.01] hover:border-[#7b2cbf]/30 hover:bg-white/[0.02]'
                     )}
                   >
-                    <div className="flex items-center justify-between gap-2 md:gap-4">
+                    <div className="flex items-center justify-between gap-3 md:gap-5">
                       {/* Rank & Player Info */}
-                      <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
+                      <div className="flex items-center gap-3 md:gap-5 flex-1 min-w-0">
                         {/* Rank Badge */}
                         <div className={cn(
-                          'w-8 h-8 md:w-12 md:h-12 rounded-lg flex-shrink-0 flex items-center justify-center font-black text-xs md:text-lg border shadow-lg',
+                          'w-10 h-10 md:w-14 md:h-14 rounded-xl flex-shrink-0 flex items-center justify-center font-black text-sm md:text-xl border',
                           rank === 1
-                            ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white border-yellow-500/50 shadow-yellow-500/30'
+                            ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.2)]'
                             : rank === 2
-                            ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white border-gray-400/50 shadow-gray-500/30'
-                            : rank === 3
-                            ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white border-orange-500/50 shadow-orange-500/30'
-                            : 'bg-purple-900/40 text-purple-300 border-purple-500/30 shadow-purple-500/20'
+                              ? 'bg-gray-400/10 text-gray-300 border-gray-400/30 shadow-[0_0_15px_rgba(156,163,175,0.2)]'
+                              : rank === 3
+                                ? 'bg-orange-500/10 text-orange-400 border-orange-500/30 shadow-[0_0_15px_rgba(249,115,22,0.2)]'
+                                : 'bg-black/30 text-gray-500 border-white/5'
                         )}>
                           {rank <= 3 ? rank : `#${rank}`}
                         </div>
 
                         {/* Player Details */}
-                        <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
-                          <div className={`w-8 h-8 md:w-12 md:h-12 rounded-lg flex-shrink-0 flex items-center justify-center text-white font-bold text-xs md:text-sm ${
-                            rank === 1 ? 'bg-bts-purple' : 'bg-panel-hover'
-                          }`}>
+                        <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
+                          <div className={`w-10 h-10 md:w-14 md:h-14 rounded-xl flex-shrink-0 flex items-center justify-center text-white font-black text-sm md:text-base border border-white/5 overflow-hidden ${rank === 1 ? 'bg-[#7b2cbf]/40' : 'bg-black/40'
+                            }`}>
                             {entry.avatarUrl ? (
                               <img
                                 src={entry.avatarUrl}
@@ -770,9 +794,9 @@ export default function BattlePage({ params }) {
                       </div>
 
                       {/* Score & Actions */}
-                      <div className="flex items-center gap-1.5 md:gap-6 flex-shrink-0">
+                      <div className="flex items-center gap-3 md:gap-6 flex-shrink-0">
                         <div className="text-right">
-                          <div className="text-base sm:text-lg md:text-3xl font-extrabold text-white">
+                          <div className="text-xl sm:text-2xl md:text-4xl font-black text-white tracking-tighter">
                             {entry.count}
                           </div>
                           <div className="text-[9px] sm:text-[10px] text-muted uppercase tracking-wider md:hidden">
@@ -808,26 +832,25 @@ export default function BattlePage({ params }) {
       </div>
 
       {/* Info & Sync Notice - Combined */}
-      <div className="relative overflow-hidden rounded-xl border border-yellow-500/30 bg-gradient-to-r from-yellow-900/30 to-orange-900/30 p-6 backdrop-blur-sm animate-slide-up">
-        <div className="absolute -top-12 -left-12 h-32 w-32 rounded-full bg-yellow-500/10 blur-3xl"></div>
-        <div className="relative">
+      <div className="relative overflow-hidden rounded-2xl border border-white/5 bg-[#090b14] p-6 lg:p-8 shadow-2xl animate-slide-up mt-8">
+        <div className="absolute top-0 right-0 h-48 w-48 rounded-full bg-[#7b2cbf]/10 blur-[60px] pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 h-32 w-32 rounded-full bg-[#c77dff]/5 blur-[40px] pointer-events-none"></div>
+        <div className="relative z-10">
           {/* Main info section */}
-          <div className="flex items-start gap-4 mb-6">
-            <div className="w-10 h-10 rounded-lg bg-purple-500/20 border border-purple-500/40 flex items-center justify-center flex-shrink-0 shadow-lg shadow-purple-500/20">
-              <svg className="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 mb-6 text-center sm:text-left">
+            <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-center flex-shrink-0 shadow-lg">
+              <span className="material-symbols-outlined text-2xl text-[#c77dff]">auto_awesome</span>
             </div>
             <div>
-              <p className="text-sm text-purple-200/80 leading-relaxed font-medium">
+              <p className="text-[15px] sm:text-base text-gray-300 leading-relaxed font-bold tracking-wide">
                 {battle.status === 'active' && (
-                  <>You can compete as a solo player or create/join a team to combine scores with others!</>
+                  <>Invite ARMYs or join a team to conquer the leaderboard. Stream together to win.</>
                 )}
                 {battle.status === 'ended' && (
-                  <>Battle has ended. Final results are displayed above. Thank you for participating!</>
+                  <>Battle has ended. See final stats above. Great streaming!</>
                 )}
                 {battle.status === 'upcoming' && (
-                  <>Battle hasn't started yet. Join now to compete when it starts!</>
+                  <>Battle starts soon. Get your team ready to stream!</>
                 )}
               </p>
             </div>
@@ -835,27 +858,29 @@ export default function BattlePage({ params }) {
 
           {/* Sync timing info */}
           {battle.status === 'active' && (
-            <div className="text-center pt-4 border-t border-yellow-500/20">
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <span className="text-2xl">⚡</span>
-                <h3 className="text-lg font-bold text-yellow-200">Running on limited resources</h3>
+            <div className="text-center pt-6 sm:pt-8 border-t border-white/10 mt-6 sm:mt-8">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <span className="material-symbols-outlined text-[#e0aaff] text-xl sm:text-2xl animate-pulse">cloud_sync</span>
+                <h3 className="text-lg sm:text-xl font-black text-gray-100 uppercase tracking-widest">Sync Station</h3>
               </div>
-              <p className="text-sm text-gray-300 mb-4">
-                Scrobbles sync automatically within <span className="text-purple-300 font-bold">5 minutes</span>.
-                If not synced, it will update for sure within <span className="text-purple-300 font-bold">15-30 minutes</span> (auto sync).
+              <p className="text-sm sm:text-base text-gray-400 mb-6 leading-relaxed max-w-2xl mx-auto">
+                Scrobbles automatically sync every <span className="text-[#c77dff] font-bold">15-30 minutes</span>.
+                <br className="hidden sm:block" />
+                Want it faster? Hit the <span className="text-[#e0aaff] font-bold">SYNC</span> button on your card.
                 <br />
-                Not seeing updates? Try the <span className="text-blue-300 font-bold">Manual Sync</span> button above!
-                <br />
-                <span className="text-xs text-gray-400 mt-1 inline-block">Want faster updates? Consider supporting us to help upgrade the site!</span>
+                <span className="text-xs text-gray-500 mt-2 block font-medium uppercase tracking-widest">Help keep operations running. Support server costs.</span>
               </p>
               <Link
                 href="https://ko-fi.com/noobsambit"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold rounded-lg transition-all shadow-lg hover:shadow-xl hover:scale-105"
+                className="group relative inline-flex items-center justify-center gap-2.5 px-8 py-4 bg-[#7b2cbf]/20 text-[#c77dff] hover:text-white border border-[#7b2cbf]/50 hover:border-[#c77dff] rounded-xl font-bold transition-all duration-300 overflow-hidden shadow-[0_0_20px_rgba(123,44,191,0.2)] hover:shadow-[0_0_40px_rgba(199,125,255,0.4)] hover:-translate-y-1"
               >
-                <span>💜</span>
-                <span>Donate</span>
+                <div className="absolute inset-0 w-0 bg-gradient-to-r from-[#7b2cbf] to-[#5a189a] transition-all duration-500 ease-out group-hover:w-full z-0"></div>
+                <span className="relative z-10 flex items-center gap-2 tracking-widest uppercase">
+                  <span className="material-symbols-outlined text-lg">volunteer_activism</span>
+                  Funding
+                </span>
               </Link>
             </div>
           )}
@@ -929,6 +954,6 @@ export default function BattlePage({ params }) {
         onFullSync={handleFullSync}
         loading={syncLoading}
       />
-    </div>
+    </div >
   );
 }

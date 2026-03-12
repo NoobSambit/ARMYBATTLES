@@ -253,290 +253,385 @@ export default function Dashboard() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" />
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background-dark">
+        <div className="flex flex-col items-center justify-center py-40 animate-pulse-slow">
+          <div className="relative w-36 h-36 mb-10">
+            <div className="absolute inset-0 border-4 border-bts-purple/10 rounded-full"></div>
+            <div className="absolute inset-0 border-[5px] border-bts-pink rounded-full border-t-transparent animate-spin" style={{ animationDuration: '1.2s' }}></div>
+            <div className="absolute inset-3 border-4 border-bts-blue/40 rounded-full border-b-transparent animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }}></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="material-symbols-outlined text-5xl text-bts-purple animate-pulse drop-shadow-[0_0_15px_rgba(139,92,246,0.5)]">
+                crisis_alert
+              </span>
+            </div>
+          </div>
+          <h3 className="text-3xl font-display font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-bts-purple to-bts-pink mb-4 uppercase drop-shadow-sm">
+            Loading Dashboard
+          </h3>
+          <p className="text-bts-blue-light uppercase tracking-[0.3em] text-sm font-bold flex items-center gap-3">
+            <span className="w-2 h-2 rounded-full bg-bts-blue animate-ping"></span>
+            Authenticating...
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="mb-8">
-        <h1 className="font-display text-4xl font-bold text-gradient mb-2">Dashboard</h1>
-        <p className="text-gray-400">Manage your battles and profile</p>
-      </div>
+    <div className="min-h-screen flex flex-col pt-32 pb-12 relative overflow-hidden bg-background-dark text-slate-100">
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 relative z-10">
+        {/* Decorative background glows */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#7b2cbf]/10 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+        <div className="absolute bottom-1/4 right-0 w-80 h-80 bg-[#c77dff]/10 rounded-full blur-[100px] pointer-events-none -z-10"></div>
 
-      {error && (
-        <div className="mb-6 bg-red-500/10 border border-red-500/25 text-red-300 px-4 py-3 rounded-lg">
-          {error}
+        <div className="mb-10 text-center sm:text-left">
+          <h1 className="font-display text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-gray-200 to-gray-500 mb-2 tracking-tight drop-shadow-sm">Dashboard</h1>
+          <p className="text-gray-400 font-medium tracking-wide">Manage your battles and profile</p>
         </div>
-      )}
-      {success && (
-        <div className="mb-6 bg-green-500/10 border border-green-500/25 text-green-300 px-4 py-3 rounded-lg">
-          {success}
-        </div>
-      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-100 mb-4">Profile</h3>
-          <div className="space-y-3">
-            <div>
-              <p className="text-sm text-gray-400">Username</p>
-              <p className="font-medium text-gray-100">{user.username}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-400">Last.fm</p>
-              {user.lastfmUsername ? (
-                <div>
-                  <p className="font-medium text-green-300">{user.lastfmUsername}</p>
-                  {user.lastfmProfileUrl && (
-                    <a
-                      href={user.lastfmProfileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-bts-pink-bright hover:text-bts-pink underline mt-1 inline-block"
-                    >
-                      View Profile
-                    </a>
-                  )}
-                </div>
-              ) : (
-                <p className="font-medium text-orange-300">Not connected</p>
-              )}
+        {error && (
+          <div className="mb-6 bg-red-500/10 border border-red-500/25 text-red-300 px-4 py-3 rounded-xl flex items-center gap-3">
+            <span className="material-symbols-outlined text-red-400">error</span>
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="mb-6 bg-green-500/10 border border-green-500/25 text-green-300 px-4 py-3 rounded-xl flex items-center gap-3">
+            <span className="material-symbols-outlined text-green-400">check_circle</span>
+            {success}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          {/* Profile Card */}
+          <div className="bg-[#090b14] border border-[#7b2cbf]/20 rounded-2xl p-6 md:p-8 shadow-[0_0_15px_rgba(0,0,0,0.5)] hover:border-[#7b2cbf]/50 transition-all duration-300 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#7b2cbf]/10 rounded-full blur-3xl group-hover:bg-[#c77dff]/20 transition-all duration-500"></div>
+
+            <h3 className="text-lg font-black text-gray-200 uppercase tracking-widest mb-6 flex items-center gap-2">
+              <span className="material-symbols-outlined text-[#c77dff]">account_circle</span>
+              Profile
+            </h3>
+            <div className="space-y-5 relative z-10">
+              <div>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Username</p>
+                <p className="font-black text-xl text-white tracking-wide">{user.username}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Last.fm</p>
+                {user.lastfmUsername ? (
+                  <div>
+                    <p className="font-black text-lg text-[#e0aaff] tracking-wide">{user.lastfmUsername}</p>
+                    {user.lastfmProfileUrl && (
+                      <a
+                        href={user.lastfmProfileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-bold text-[#c77dff] hover:text-white transition-colors uppercase tracking-widest inline-flex items-center gap-1 mt-1.5"
+                      >
+                        View Profile <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <p className="font-bold text-yellow-500/80 text-sm tracking-wide bg-yellow-500/10 px-3 py-1.5 rounded-lg border border-yellow-500/20 inline-block">Not connected</p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-100 mb-4">Quick Actions</h3>
-          <div className="space-y-3">
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className="btn-primary w-full"
-            >
-              Create New Battle
-            </button>
-            <Link href="/battles">
-              <button className="btn-secondary w-full">
-                Browse All Battles
+          {/* Quick Actions Card */}
+          <div className="bg-[#090b14] border border-[#7b2cbf]/20 rounded-2xl p-6 md:p-8 shadow-[0_0_15px_rgba(0,0,0,0.5)] hover:border-[#7b2cbf]/50 transition-all duration-300 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#c77dff]/10 rounded-full blur-3xl group-hover:bg-[#9d4edd]/20 transition-all duration-500"></div>
+
+            <h3 className="text-lg font-black text-gray-200 uppercase tracking-widest mb-6 flex items-center gap-2">
+              <span className="material-symbols-outlined text-[#e0aaff]">bolt</span>
+              Quick Actions
+            </h3>
+            <div className="space-y-3 relative z-10">
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="w-full group/btn relative overflow-hidden bg-[#7b2cbf]/20 text-[#e0aaff] hover:text-white border border-[#7b2cbf]/50 hover:border-[#c77dff] font-bold py-3.5 rounded-xl shadow-[0_0_20px_rgba(123,44,191,0.2)] transition-all duration-300 hover:shadow-[0_0_30px_rgba(199,125,255,0.3)] hover:-translate-y-0.5"
+              >
+                <div className="absolute inset-0 w-0 bg-gradient-to-r from-[#7b2cbf]/80 to-[#5a189a] transition-all duration-500 ease-out group-hover/btn:w-full z-0"></div>
+                <span className="relative z-10 flex items-center justify-center gap-2 tracking-widest uppercase text-sm">
+                  <span className="material-symbols-outlined text-[1.2rem]">add_circle</span>
+                  Create New Battle
+                </span>
               </button>
-            </Link>
-            <button
-              onClick={() => handleLogout()}
-              className="btn-outline w-full"
-            >
-              Logout
-            </button>
+              <Link href="/battles" className="block">
+                <button className="w-full group/btn relative overflow-hidden bg-white/5 text-gray-300 hover:text-white border border-white/10 hover:border-white/30 font-bold py-3.5 rounded-xl transition-all duration-300">
+                  <span className="relative z-10 flex items-center justify-center gap-2 tracking-widest uppercase text-sm">
+                    <span className="material-symbols-outlined text-[1.2rem]">travel_explore</span>
+                    Browse All Battles
+                  </span>
+                </button>
+              </Link>
+              <button
+                onClick={() => handleLogout()}
+                className="w-full group/btn relative overflow-hidden bg-red-500/5 text-red-400 hover:text-white border border-red-500/20 hover:border-red-500/50 font-bold py-3.5 rounded-xl transition-all duration-300 hover:bg-red-500/20"
+              >
+                <span className="relative z-10 flex items-center justify-center gap-2 tracking-widest uppercase text-sm">
+                  <span className="material-symbols-outlined text-[1.2rem]">logout</span>
+                  Logout
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Stats Card */}
+          <div className="bg-[#090b14] border border-[#7b2cbf]/20 rounded-2xl p-6 md:p-8 shadow-[0_0_15px_rgba(0,0,0,0.5)] hover:border-[#7b2cbf]/50 transition-all duration-300 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#9d4edd]/10 rounded-full blur-3xl group-hover:bg-[#c77dff]/20 transition-all duration-500"></div>
+
+            <h3 className="text-lg font-black text-gray-200 uppercase tracking-widest mb-6 flex items-center gap-2">
+              <span className="material-symbols-outlined text-[#c77dff]">monitoring</span>
+              Stats
+            </h3>
+            <div className="space-y-6 relative z-10">
+              <div className="flex items-center justify-between border-b border-white/[0.05] pb-4">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Battles</span>
+                <span className="font-black text-3xl text-transparent bg-clip-text bg-gradient-to-br from-white to-[#c77dff]">{userBattles.length}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span> Active Now</span>
+                <span className="font-black text-3xl text-transparent bg-clip-text bg-gradient-to-br from-green-300 to-emerald-500 drop-shadow-[0_0_10px_rgba(74,222,128,0.3)]">
+                  {userBattles.filter(b => b.status === 'active').length}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-100 mb-4">Stats</h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-400">Total Battles</span>
-              <span className="font-bold text-2xl text-bts-purple">{userBattles.length}</span>
+        <div className="mb-8">
+          <h2 className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 mb-6 drop-shadow-sm flex items-center gap-3">
+            <span className="material-symbols-outlined text-[#c77dff] text-[1.5rem] sm:text-[2rem]">swords</span>
+            Your Battles
+          </h2>
+
+          {userBattles.length > 0 && (
+            <>
+              <div className="mb-6">
+                <div className="relative group">
+                  <input
+                    type="text"
+                    placeholder="Search your battles..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full px-4 py-3.5 pl-12 bg-black/40 border border-[#7b2cbf]/30 rounded-xl text-white outline-none focus:border-[#c77dff] focus:bg-[#7b2cbf]/10 focus:shadow-[0_0_15px_rgba(157,78,221,0.15)] transition-all placeholder:text-gray-600 font-medium group-hover:border-[#7b2cbf]/50"
+                  />
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 group-focus-within:text-[#c77dff] transition-colors">
+                    search
+                  </span>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <nav className="flex space-x-2 overflow-x-auto p-1.5 bg-[#090b14]/80 border border-white/5 rounded-2xl custom-scrollbar relative z-10">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={cn(
+                        'flex items-center gap-2.5 py-2.5 px-5 rounded-xl font-bold text-sm transition-all duration-300 whitespace-nowrap tracking-wide',
+                        activeTab === tab.id
+                          ? 'bg-[#7b2cbf] text-white shadow-[0_0_15px_rgba(123,44,191,0.4)]'
+                          : 'bg-transparent text-gray-400 hover:text-white hover:bg-white/5'
+                      )}
+                    >
+                      <span>{tab.label}</span>
+                      <span className={cn(
+                        'px-2 py-0.5 rounded-lg text-[10px] font-black',
+                        activeTab === tab.id
+                          ? 'bg-white/20 text-white'
+                          : 'bg-white/5 text-gray-400'
+                      )}>
+                        {tab.id === 'all' ? userBattles.length : userBattles.filter(b => b.status === tab.id).length}
+                      </span>
+                    </button>
+                  ))}
+                </nav>
+              </div>
+            </>
+          )}
+
+          {loadingBattles ? (
+            <div className="flex flex-col items-center justify-center py-20 bg-[#090b14] border border-[#7b2cbf]/20 rounded-2xl animate-pulse-slow shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+              <div className="relative w-24 h-24 mb-6">
+                <div className="absolute inset-0 border-4 border-bts-purple/10 rounded-full"></div>
+                <div className="absolute inset-0 border-[4px] border-bts-pink rounded-full border-t-transparent animate-spin" style={{ animationDuration: '1.2s' }}></div>
+                <div className="absolute inset-3 border-4 border-bts-blue/40 rounded-full border-b-transparent animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }}></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-3xl text-bts-purple animate-pulse drop-shadow-[0_0_15px_rgba(139,92,246,0.5)]">
+                    radar
+                  </span>
+                </div>
+              </div>
+              <h3 className="text-xl font-display font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-bts-purple to-bts-pink mb-2 uppercase drop-shadow-sm">
+                Fetching Data
+              </h3>
+              <p className="text-bts-blue-light uppercase tracking-[0.3em] text-[10px] font-bold flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-bts-blue animate-ping"></span>
+                Scanning for Battles...
+              </p>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-400">Active Now</span>
-              <span className="font-bold text-2xl text-green-300">
-                {userBattles.filter(b => b.status === 'active').length}
-              </span>
+          ) : userBattles.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 px-4 text-center bg-[#090b14] border border-[#7b2cbf]/20 rounded-2xl shadow-[0_0_15px_rgba(0,0,0,0.5)] relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-40 h-40 bg-[#c77dff]/10 rounded-full blur-[60px] pointer-events-none transition-all duration-500 group-hover:bg-[#9d4edd]/20"></div>
+              <div className="w-24 h-24 mb-6 rounded-full bg-black/40 border border-[#7b2cbf]/30 flex items-center justify-center shadow-[0_0_20px_rgba(123,44,191,0.2)]">
+                <span className="material-symbols-outlined text-5xl text-gray-500 group-hover:text-[#c77dff] transition-colors">
+                  videogame_asset_off
+                </span>
+              </div>
+              <h3 className="text-2xl font-black text-white mb-2 tracking-tight">No Battles Found</h3>
+              <p className="text-gray-400 mb-8 font-medium">Join or create a battle to get started!</p>
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="group/btn relative overflow-hidden bg-[#7b2cbf]/20 text-[#e0aaff] hover:text-white border border-[#7b2cbf]/50 hover:border-[#c77dff] font-bold py-3.5 px-8 rounded-xl shadow-[0_0_20px_rgba(123,44,191,0.2)] transition-all duration-300 hover:shadow-[0_0_30px_rgba(199,125,255,0.3)] hover:-translate-y-0.5"
+              >
+                <div className="absolute inset-0 w-0 bg-gradient-to-r from-[#7b2cbf]/80 to-[#5a189a] transition-all duration-500 ease-out group-hover/btn:w-full z-0"></div>
+                <span className="relative z-10 flex items-center justify-center gap-2 tracking-widest uppercase text-sm">
+                  <span className="material-symbols-outlined text-[1.2rem]">add_circle</span>
+                  Create Battle
+                </span>
+              </button>
             </div>
-          </div>
+          ) : filteredUserBattles.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 px-4 text-center bg-[#090b14] border border-[#7b2cbf]/20 rounded-2xl shadow-[0_0_15px_rgba(0,0,0,0.5)] relative overflow-hidden group">
+              <div className="absolute bottom-0 left-0 w-40 h-40 bg-[#c77dff]/10 rounded-full blur-[60px] pointer-events-none transition-all duration-500 group-hover:bg-[#9d4edd]/20"></div>
+              <div className="w-24 h-24 mb-6 rounded-full bg-black/40 border border-[#7b2cbf]/30 flex items-center justify-center shadow-[0_0_20px_rgba(123,44,191,0.2)]">
+                <span className="material-symbols-outlined text-5xl text-gray-500 group-hover:text-[#c77dff] transition-colors">
+                  search_off
+                </span>
+              </div>
+              <h3 className="text-2xl font-black text-white mb-2 tracking-tight">No Battles Match Your Search</h3>
+              <p className="text-gray-400 font-medium">Try a different search term or category.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredUserBattles.map((battle) => (
+                <BattleCard key={battle.id} battle={battle} />
+              ))}
+            </div>
+          )}
         </div>
-      </div>
 
-      <div className="mb-8">
-        <h2 className="section-title">Your Battles</h2>
+        <Modal
+          isOpen={showCreateForm}
+          onClose={() => {
+            setShowCreateForm(false);
+            setError('');
+            setBattleForm({ name: '', description: '', goal: '', spotifyPlaylist: '', startTime: '', endTime: '' });
+          }}
+          title="Create New Battle"
+          size="md"
+        >
+          <form onSubmit={handleBattleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-black tracking-widest text-[#c77dff] uppercase mb-2">
+                Battle Name
+              </label>
+              <input
+                type="text"
+                placeholder="e.g., BTS Album Battle"
+                value={battleForm.name}
+                onChange={(e) => setBattleForm({ ...battleForm, name: e.target.value })}
+                required
+                className="w-full px-4 py-3.5 bg-black/40 border border-white/10 rounded-xl text-white outline-none focus:border-[#c77dff] focus:bg-[#7b2cbf]/10 focus:shadow-[0_0_15px_rgba(157,78,221,0.15)] transition-all placeholder:text-gray-600 font-medium"
+              />
+            </div>
 
-        {userBattles.length > 0 && (
-          <>
-            <div className="mb-6">
-              <div className="relative">
+            <div>
+              <label className="block text-xs font-black tracking-widest text-[#c77dff] uppercase mb-2">
+                Description <span className="text-gray-500 font-bold">(Optional)</span>
+              </label>
+              <textarea
+                placeholder="Describe your battle..."
+                value={battleForm.description}
+                onChange={(e) => setBattleForm({ ...battleForm, description: e.target.value })}
+                rows={3}
+                maxLength={500}
+                className="w-full px-4 py-3.5 bg-black/40 border border-white/10 rounded-xl text-white outline-none focus:border-[#c77dff] focus:bg-[#7b2cbf]/10 focus:shadow-[0_0_15px_rgba(157,78,221,0.15)] transition-all placeholder:text-gray-600 font-medium resize-none"
+              />
+              <p className="text-[10px] uppercase font-bold tracking-widest text-gray-500 mt-1.5">{battleForm.description.length}/500 characters</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-black tracking-widest text-[#c77dff] uppercase mb-2">
+                Goal <span className="text-gray-500 font-bold">(Total Scrobbles)</span> <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="number"
+                placeholder="e.g., 1000"
+                value={battleForm.goal}
+                onChange={(e) => setBattleForm({ ...battleForm, goal: e.target.value })}
+                required
+                min="1"
+                className="w-full px-4 py-3.5 bg-black/40 border border-white/10 rounded-xl text-white outline-none focus:border-[#c77dff] focus:bg-[#7b2cbf]/10 focus:shadow-[0_0_15px_rgba(157,78,221,0.15)] transition-all placeholder:text-gray-600 font-medium"
+              />
+              <p className="text-[10px] uppercase font-bold tracking-widest text-gray-500 mt-1.5">Target number of total scrobbles to reach</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-black tracking-widest text-[#c77dff] uppercase mb-2">
+                Spotify Playlist URL or ID
+              </label>
+              <input
+                type="text"
+                placeholder="https://open.spotify.com/playlist/..."
+                value={battleForm.spotifyPlaylist}
+                onChange={(e) => setBattleForm({ ...battleForm, spotifyPlaylist: e.target.value })}
+                required
+                className="w-full px-4 py-3.5 bg-black/40 border border-white/10 rounded-xl text-white outline-none focus:border-[#c77dff] focus:bg-[#7b2cbf]/10 focus:shadow-[0_0_15px_rgba(157,78,221,0.15)] transition-all placeholder:text-gray-600 font-medium"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-black tracking-widest text-[#c77dff] uppercase mb-2">
+                  Start Time
+                </label>
                 <input
-                  type="text"
-                  placeholder="Search your battles..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-4 py-3 pl-12 bg-panel/50 backdrop-blur-sm border border-border-light rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-bts-purple/50 transition-colors"
+                  type="datetime-local"
+                  value={battleForm.startTime}
+                  onChange={(e) => setBattleForm({ ...battleForm, startTime: e.target.value })}
+                  required
+                  className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white outline-none focus:border-[#c77dff] focus:bg-[#7b2cbf]/10 focus:shadow-[0_0_15px_rgba(157,78,221,0.15)] transition-all font-medium [color-scheme:dark]"
                 />
-                <svg
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+              </div>
+
+              <div>
+                <label className="block text-xs font-black tracking-widest text-[#c77dff] uppercase mb-2">
+                  End Time
+                </label>
+                <input
+                  type="datetime-local"
+                  value={battleForm.endTime}
+                  onChange={(e) => setBattleForm({ ...battleForm, endTime: e.target.value })}
+                  required
+                  className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white outline-none focus:border-[#c77dff] focus:bg-[#7b2cbf]/10 focus:shadow-[0_0_15px_rgba(157,78,221,0.15)] transition-all font-medium [color-scheme:dark]"
+                />
               </div>
             </div>
 
-            <div className="mb-6">
-              <nav className="flex space-x-2 overflow-x-auto p-1 bg-panel/50 backdrop-blur-sm border border-border-light rounded-2xl">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={cn(
-                      'flex items-center gap-3 py-3 px-6 rounded-xl font-semibold text-sm transition-all duration-300 whitespace-nowrap',
-                      activeTab === tab.id
-                        ? 'bg-gradient-to-r from-bts-purple/20 to-bts-pink/20 text-white border border-bts-purple/30 shadow-glow-purple'
-                        : 'text-gray-400 hover:text-gray-200 hover:bg-panel-hover'
-                    )}
-                  >
-                    <span>{tab.label}</span>
-                    <span className={cn(
-                      'px-2.5 py-1 rounded-lg text-xs font-bold',
-                      activeTab === tab.id
-                        ? 'bg-bts-purple/30 text-white'
-                        : 'bg-panel-hover border border-border-light text-gray-300'
-                    )}>
-                      {tab.id === 'all' ? userBattles.length : userBattles.filter(b => b.status === tab.id).length}
-                    </span>
-                  </button>
-                ))}
-              </nav>
-            </div>
-          </>
-        )}
-
-        {loadingBattles ? (
-          <div className="text-center py-12 bg-panel border border-border rounded-lg animate-pulse">
-            <div className="flex justify-center mb-4">
-              <LoadingSpinner size="lg" />
-            </div>
-            <p className="text-gray-400">Loading your battles...</p>
-          </div>
-        ) : userBattles.length === 0 ? (
-          <div className="text-center py-12 bg-panel border border-border rounded-lg">
-            <p className="text-gray-300 text-lg">No battles found</p>
-            <p className="text-gray-400 mt-2">Join or create a battle to get started!</p>
             <button
-              onClick={() => setShowCreateForm(true)}
-              className="btn-primary mt-4"
+              type="submit"
+              disabled={creatingBattle}
+              className="group relative w-full overflow-hidden bg-[#7b2cbf]/20 text-[#e0aaff] hover:text-white border border-[#7b2cbf]/50 hover:border-[#c77dff] font-bold py-4 rounded-xl shadow-lg transition-all duration-300 hover:shadow-[0_0_30px_rgba(157,78,221,0.3)] hover:-translate-y-1 mt-6 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
             >
-              Create Battle
+              {!creatingBattle && <div className="absolute inset-0 w-0 bg-gradient-to-r from-[#7b2cbf]/80 to-[#5a189a] transition-all duration-500 ease-out group-hover:w-full z-0"></div>}
+              <span className="relative z-10 flex items-center justify-center gap-2 tracking-widest uppercase">
+                {creatingBattle ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"></div>
+                    <span>CREATING...</span>
+                  </>
+                ) : (
+                  'CREATE BATTLE'
+                )}
+              </span>
             </button>
-          </div>
-        ) : filteredUserBattles.length === 0 ? (
-          <div className="text-center py-12 bg-panel border border-border rounded-lg">
-            <p className="text-gray-300 text-lg">No battles match your search</p>
-            <p className="text-gray-400 mt-2">Try a different search term</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredUserBattles.map((battle) => (
-              <BattleCard key={battle.id} battle={battle} />
-            ))}
-          </div>
-        )}
+          </form>
+        </Modal>
       </div>
-
-      <Modal
-        isOpen={showCreateForm}
-        onClose={() => {
-          setShowCreateForm(false);
-          setError('');
-          setBattleForm({ name: '', description: '', goal: '', spotifyPlaylist: '', startTime: '', endTime: '' });
-        }}
-        title="Create New Battle"
-        size="md"
-      >
-        <form onSubmit={handleBattleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Battle Name
-            </label>
-            <input
-              type="text"
-              placeholder="e.g., BTS Album Battle"
-              value={battleForm.name}
-              onChange={(e) => setBattleForm({ ...battleForm, name: e.target.value })}
-              required
-              className="input-field"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Description <span className="text-xs text-gray-500">(Optional)</span>
-            </label>
-            <textarea
-              placeholder="Describe your battle..."
-              value={battleForm.description}
-              onChange={(e) => setBattleForm({ ...battleForm, description: e.target.value })}
-              rows={3}
-              maxLength={500}
-              className="input-field resize-none"
-            />
-            <p className="text-xs text-gray-500 mt-1">{battleForm.description.length}/500 characters</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Goal (Total Scrobbles/Streams) <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="number"
-              placeholder="e.g., 1000"
-              value={battleForm.goal}
-              onChange={(e) => setBattleForm({ ...battleForm, goal: e.target.value })}
-              required
-              min="1"
-              className="input-field"
-            />
-            <p className="text-xs text-gray-500 mt-1">Target number of total scrobbles/streams to reach</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Spotify Playlist URL or ID
-            </label>
-            <input
-              type="text"
-              placeholder="https://open.spotify.com/playlist/..."
-              value={battleForm.spotifyPlaylist}
-              onChange={(e) => setBattleForm({ ...battleForm, spotifyPlaylist: e.target.value })}
-              required
-              className="input-field"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Start Time
-              </label>
-              <input
-                type="datetime-local"
-                value={battleForm.startTime}
-                onChange={(e) => setBattleForm({ ...battleForm, startTime: e.target.value })}
-                required
-                className="input-field"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                End Time
-              </label>
-              <input
-                type="datetime-local"
-                value={battleForm.endTime}
-                onChange={(e) => setBattleForm({ ...battleForm, endTime: e.target.value })}
-                required
-                className="input-field"
-              />
-            </div>
-          </div>
-
-          <button type="submit" disabled={creatingBattle} className="btn-primary w-full">
-            {creatingBattle ? 'Creating...' : 'Create Battle'}
-          </button>
-        </form>
-      </Modal>
     </div>
   );
 }

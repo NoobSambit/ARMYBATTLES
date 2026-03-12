@@ -67,6 +67,7 @@ async function handler(req, res) {
         count: 0,
         isCheater: false,
         scrobbleTimestamps: [],
+        countingStartedAt: new Date(),
         teamId: null,
         lastSyncedAt: null,
         lastSyncType: null,
