@@ -3,35 +3,58 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { Inter, Outfit } from 'next/font/google'
 
-export const metadata = {
-  title: 'ARMYBATTLES',
-  description: 'ARMYBATTLES — Real-time BTS streaming battles powered by verified scrobbles',
+function resolveSiteUrl() {
+  const candidate =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.URL ||
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+    process.env.VERCEL_URL ||
+    'http://localhost:5000'
+
+  return candidate.startsWith('http') ? candidate : `https://${candidate}`
+}
+
+const siteName = 'ARMYBATTLES'
+const description = 'ARMYBATTLES — Real-time BTS streaming battles powered by verified scrobbles'
+const previewImage = '/armybattles_preview.png'
+
+export const viewport = {
   themeColor: [
     { media: '(prefers-color-scheme: dark)', color: '#0B0B11' },
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
   ],
+}
+
+export const metadata = {
+  metadataBase: new URL(resolveSiteUrl()),
+  title: siteName,
+  description,
   icons: {
-    icon: 'https://res.cloudinary.com/dtamgk7i5/image/upload/v1764741224/armybattles-Picsart-BackgroundRemover_fd11rd.png',
-    apple: 'https://res.cloudinary.com/dtamgk7i5/image/upload/v1764741224/armybattles-Picsart-BackgroundRemover_fd11rd.png',
+    icon: '/armybattles_logo.png',
+    apple: '/armybattles_logo.png',
   },
   openGraph: {
-    title: 'ARMYBATTLES',
-    description: 'Real-time BTS streaming battles powered by verified scrobbles',
+    title: siteName,
+    description,
     type: 'website',
+    siteName,
+    url: '/',
     images: [
       {
-        url: 'https://res.cloudinary.com/dtamgk7i5/image/upload/v1764741224/armybattles-Picsart-BackgroundRemover_fd11rd.png',
-        width: 1200,
-        height: 630,
-        alt: 'ARMYBATTLES',
+        url: previewImage,
+        width: 2848,
+        height: 1504,
+        alt: siteName,
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'ARMYBATTLES',
-    description: 'Real-time BTS streaming battles powered by verified scrobbles',
-    images: ['https://res.cloudinary.com/dtamgk7i5/image/upload/v1764741224/armybattles-Picsart-BackgroundRemover_fd11rd.png'],
+    title: siteName,
+    description,
+    images: [previewImage],
   },
 }
 

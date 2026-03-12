@@ -2,6 +2,7 @@ import connectDB from '../../../utils/db';
 import Battle from '../../../models/Battle';
 import BattleStats from '../../../models/BattleStats';
 import { createHandler, withCors } from '../../../lib/middleware';
+import { getBattleStatus } from '../../../lib/utils';
 import { logger } from '../../../utils/logger';
 
 // Cache for battle list (60 second TTL)
@@ -32,23 +33,31 @@ async function handler(req, res) {
       .sort({ createdAt: -1 })
       .limit(50);
 
-    const battlesData = battles.map(battle => ({
-      id: battle._id,
-      name: battle.name,
-      description: battle.description,
-      goal: battle.goal,
-      host: battle.host.username,
-      hostId: battle.host._id.toString(),
-      startTime: battle.startTime,
-      endTime: battle.endTime,
-      status: battle.status,
-      participantCount: battle.participants.length,
-      trackCount: battle.playlistTracks.length,
-      participants: battle.participants.map(p => ({
-        userId: p._id.toString(),
-        username: p.username
-      })),
-    }));
+    const battlesData = battles.map(battle => {
+      const computedStatus = getBattleStatus({
+        status: battle.status,
+        startTime: battle.startTime,
+        endTime: battle.endTime,
+      });
+
+      return {
+        id: battle._id,
+        name: battle.name,
+        description: battle.description,
+        goal: battle.goal,
+        host: battle.host.username,
+        hostId: battle.host._id.toString(),
+        startTime: battle.startTime,
+        endTime: battle.endTime,
+        status: computedStatus,
+        participantCount: battle.participants.length,
+        trackCount: battle.playlistTracks.length,
+        participants: battle.participants.map(p => ({
+          userId: p._id.toString(),
+          username: p.username
+        })),
+      };
+    });
 
     const battleIds = battles.map(battle => battle._id);
     const battleStats = battleIds.length
