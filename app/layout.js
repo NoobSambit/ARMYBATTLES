@@ -18,7 +18,7 @@ function resolveSiteUrl() {
 
 const siteName = 'ARMYBATTLES'
 const description = 'ARMYBATTLES — Real-time BTS streaming battles powered by verified scrobbles'
-const previewImage = '/armybattles_preview.png'
+const previewImage = '/armybattles_preview.png?v=20260312'
 
 export const viewport = {
   themeColor: [

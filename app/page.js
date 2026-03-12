@@ -166,6 +166,7 @@ export default function Home() {
 
   const activeBattles = battles.filter(b => b.status === 'active');
   const upcomingBattles = battles.filter(b => b.status === 'upcoming');
+  const getBattleId = (battle) => battle.id || battle._id;
 
   return (
     <div className="relative min-h-screen flex flex-col bg-background-dark text-slate-100 antialiased overflow-x-hidden pt-20">
@@ -320,8 +321,12 @@ export default function Home() {
                 </div>
 
                 <div className="flex flex-col gap-4">
-                  {activeBattles.map(battle => (
-                    <div key={battle._id} className="relative group overflow-hidden bg-card-glass border border-white/5 rounded-2xl p-4 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hover:border-accent-green/30 transition-all shadow-xl">
+                  {activeBattles.map(battle => {
+                    const battleId = getBattleId(battle);
+                    const battleHref = battleId ? `/battle/${battleId}` : '/battles';
+
+                    return (
+                    <div key={battleId || battle.name} className="relative group overflow-hidden bg-card-glass border border-white/5 rounded-2xl p-4 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hover:border-accent-green/30 transition-all shadow-xl">
                       {/* Subtle hover gradient */}
                       <div className="absolute inset-0 bg-gradient-to-r from-accent-green/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
@@ -353,13 +358,14 @@ export default function Home() {
 
                         {/* Action */}
                         <div className="flex-shrink-0 mt-4 md:mt-0 w-full md:w-auto flex">
-                          <Link href={`/battle/${battle._id}`} className="w-full md:w-auto px-8 py-3 rounded-xl bg-white/5 hover:bg-accent-green text-white font-bold transition-all text-center flex items-center justify-center gap-2 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:text-background-dark">
+                          <Link href={battleHref} className="w-full md:w-auto px-8 py-3 rounded-xl bg-white/5 hover:bg-accent-green text-white font-bold transition-all text-center flex items-center justify-center gap-2 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:text-background-dark">
                             View Battle <span className="material-symbols-outlined text-[18px]">visibility</span>
                           </Link>
                         </div>
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </section>
             )}
@@ -381,8 +387,12 @@ export default function Home() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {upcomingBattles.map(battle => (
-                    <div key={battle._id} className="relative group bg-background-dark border border-white/10 rounded-2xl p-6 hover:border-accent-cyan/50 transition-colors flex flex-col h-full overflow-hidden">
+                  {upcomingBattles.map(battle => {
+                    const battleId = getBattleId(battle);
+                    const battleHref = battleId ? `/battle/${battleId}` : '/battles';
+
+                    return (
+                    <div key={battleId || battle.name} className="relative group bg-background-dark border border-white/10 rounded-2xl p-6 hover:border-accent-cyan/50 transition-colors flex flex-col h-full overflow-hidden">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-accent-cyan/10 blur-[50px] rounded-full pointer-events-none group-hover:bg-accent-cyan/20 transition-all"></div>
 
                       <div className="border-b border-white/10 pb-4 mb-4 flex justify-between items-start relative z-10">
@@ -413,12 +423,13 @@ export default function Home() {
                       </div>
 
                       <div className="relative z-10 mt-auto">
-                        <Link href={`/battle/${battle._id}`} className="w-full py-3 rounded-lg border border-accent-cyan/30 text-accent-cyan hover:bg-accent-cyan hover:text-background-dark transition-all text-center flex items-center justify-center gap-2 font-bold text-sm">
+                        <Link href={battleHref} className="w-full py-3 rounded-lg border border-accent-cyan/30 text-accent-cyan hover:bg-accent-cyan hover:text-background-dark transition-all text-center flex items-center justify-center gap-2 font-bold text-sm">
                           <span className="material-symbols-outlined text-[18px]">notifications</span> Alert Me
                         </Link>
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </section>
             )}
