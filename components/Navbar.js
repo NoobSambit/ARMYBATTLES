@@ -98,7 +98,7 @@ export default function Navbar() {
                 className="h-8 w-8 object-contain"
                 priority
               />
-              <span className="font-display text-sm sm:text-base font-black tracking-[0.18em] text-white">
+              <span className="font-display text-xs sm:text-base font-black tracking-[0.1em] sm:tracking-[0.18em] text-white">
                 ARMYBATTLES
               </span>
             </Link>
@@ -141,8 +141,8 @@ export default function Navbar() {
               <>
                 <Link href="/login" className="hidden sm:block text-sm font-medium hover:text-accent-cyan transition-colors">Login</Link>
                 <Link href="/signup">
-                  <button className="bg-accent-magenta hover:bg-opacity-90 text-white px-6 py-2.5 rounded-lg font-bold text-sm neon-magenta-glow transition-all flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm">music_note</span>
+                  <button className="bg-accent-magenta hover:bg-opacity-90 text-white px-3 sm:px-6 py-1.5 sm:py-2.5 rounded-md sm:rounded-lg font-bold text-xs sm:text-sm neon-magenta-glow transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+                    <span className="material-symbols-outlined text-[14px] sm:text-sm hidden sm:block">music_note</span>
                     Sign Up
                   </button>
                 </Link>
