@@ -8,10 +8,13 @@ import User from '../../../../models/User';
 import mongoose from 'mongoose';
 import { createHandler, withCors } from '../../../../lib/middleware';
 import { logger } from '../../../../utils/logger';
-
-// Cache for leaderboards (30 second TTL per battleId + filter)
-const leaderboardCache = new Map();
-const CACHE_TTL = 30000; // 30 seconds
+import {
+  getLeaderboardCacheKey,
+  leaderboardCache,
+  LEADERBOARD_CACHE_TTL,
+  pruneLeaderboardCache,
+} from '../../../../lib/leaderboard-cache';
+import { buildBattleLeaderboard, sortBattleLeaderboard } from '../../../../lib/leaderboard-utils';
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -27,11 +30,11 @@ async function handler(req, res) {
     }
 
     // Check cache first (only cache active battles, not ended ones)
-    const cacheKey = `${id}-${filter}`;
+    const cacheKey = getLeaderboardCacheKey(id, filter);
     const now = Date.now();
     const cached = leaderboardCache.get(cacheKey);
 
-    if (cached && (now - cached.timestamp) < CACHE_TTL) {
+    if (cached && (now - cached.timestamp) < LEADERBOARD_CACHE_TTL) {
       // Check if battle is still active before serving cache
       if (cached.data.status === 'active') {
         logger.info('Leaderboard served from cache', { battleId: id, filter });
@@ -152,70 +155,18 @@ async function handler(req, res) {
         leaderboard.map(e => ({ type: e.type, username: e.username, userId: e.userId }))
       );
     } else {
+      const battleTeams = await Team.find({ battleId: id }).select('name members');
+
       // Build current leaderboard with team support
       const streamCounts = await StreamCount.find({ battleId: id })
         .populate('userId', 'username displayName avatarUrl')
         .populate({ path: 'teamId', strictPopulate: false });
 
-      // Aggregate team scores
-      const teamScoresMap = new Map();
-      const soloPlayers = [];
-      const processedUsers = new Set();
-
-      for (const sc of streamCounts) {
-        processedUsers.add(sc.userId._id.toString());
-
-        if (sc.teamId) {
-          // Team member
-          if (!teamScoresMap.has(sc.teamId._id.toString())) {
-            teamScoresMap.set(sc.teamId._id.toString(), {
-              type: 'team',
-              teamId: sc.teamId._id,
-              teamName: sc.teamId.name,
-              memberCount: sc.teamId.members.length,
-              totalScore: 0,
-              isCheater: false,
-            });
-          }
-
-          const teamData = teamScoresMap.get(sc.teamId._id.toString());
-          teamData.totalScore += sc.count;
-          if (sc.isCheater) {
-            teamData.isCheater = true; // Flag team if any member is cheater
-          }
-        } else {
-          // Solo player
-          soloPlayers.push({
-            type: 'solo',
-            userId: sc.userId._id,
-            username: sc.userId.username,
-            displayName: sc.userId.displayName,
-            avatarUrl: sc.userId.avatarUrl,
-            count: sc.count,
-            isCheater: sc.isCheater || false,
-          });
-        }
-      }
-
-      // Add missing participants (those with 0 scrobbles) as solo players
-      const missingParticipants = battle.participants.filter(
-        p => !processedUsers.has(p._id.toString())
-      );
-
-      for (const p of missingParticipants) {
-        soloPlayers.push({
-          type: 'solo',
-          userId: p._id,
-          username: p.username,
-          displayName: p.displayName,
-          avatarUrl: p.avatarUrl,
-          count: 0,
-          isCheater: false,
-        });
-      }
-
-      // Convert team map to array
-      const teams = Array.from(teamScoresMap.values());
+      const { teams, soloPlayers } = buildBattleLeaderboard({
+        streamCounts,
+        battleTeams,
+        participantFallbacks: battle.participants,
+      });
 
       // Combine and sort
       let combinedLeaderboard = [];
@@ -230,11 +181,7 @@ async function handler(req, res) {
       }
 
       // Sort by score (totalScore for teams, count for solo)
-      leaderboard = combinedLeaderboard.sort((a, b) => {
-        const scoreA = a.type === 'team' ? a.totalScore : a.count;
-        const scoreB = b.type === 'team' ? b.totalScore : b.count;
-        return scoreB - scoreA;
-      });
+      leaderboard = sortBattleLeaderboard(combinedLeaderboard);
     }
 
     // Get the latest successful sync completion time
@@ -267,11 +214,7 @@ async function handler(req, res) {
         timestamp: now
       });
 
-      // Clean up old cache entries (simple cleanup)
-      if (leaderboardCache.size > 100) {
-        const oldestKeys = Array.from(leaderboardCache.keys()).slice(0, 50);
-        oldestKeys.forEach(key => leaderboardCache.delete(key));
-      }
+      pruneLeaderboardCache();
     }
 
     res.status(200).json(response);

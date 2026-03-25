@@ -476,6 +476,17 @@ export default function BattlePage({ params }) {
                 </span>
               </button>
             )}
+            {currentUser && userInBattle && battle.status !== 'ended' && (
+              <button
+                onClick={() => setJoinModalOpen(true)}
+                className="group relative overflow-hidden px-6 py-3.5 rounded-xl font-black transition-all duration-300 bg-[#5a189a]/15 text-[#e0aaff] hover:text-white border border-[#7b2cbf]/40 hover:border-[#c77dff] shadow-lg hover:shadow-[0_0_30px_rgba(157,78,221,0.25)] hover:-translate-y-1"
+              >
+                <div className="absolute inset-0 w-0 bg-gradient-to-r from-[#5a189a] to-[#7b2cbf] transition-all duration-500 ease-out group-hover:w-full z-0"></div>
+                <span className="relative z-10 flex items-center gap-2 tracking-widest uppercase">
+                  Teams
+                </span>
+              </button>
+            )}
             {!currentUser && battle.status !== 'ended' && (
               <Link
                 href="/login"
@@ -892,6 +903,7 @@ export default function BattlePage({ params }) {
         battleId={params.id}
         isOpen={joinModalOpen}
         onClose={() => setJoinModalOpen(false)}
+        teamOnly={userInBattle}
         onSuccess={() => {
           fetchLeaderboard(params.id);
           setUserInBattle(true);

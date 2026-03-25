@@ -4,6 +4,7 @@ import StreamCount from '../../../../models/StreamCount';
 import Team from '../../../../models/Team';
 import User from '../../../../models/User';
 import { createHandler, withCors, withRateLimit, withAuth } from '../../../../lib/middleware';
+import { clearBattleLeaderboardCache } from '../../../../lib/leaderboard-cache';
 
 /**
  * API endpoint for users to leave a battle
@@ -79,21 +80,15 @@ async function handler(req, res) {
       reason: 'Left voluntarily',
     });
 
-    // Remove from any teams
-    const team = await Team.findOne({
+    // Remove from any teams the user actively belongs to.
+    const teams = await Team.find({
       battleId,
-      'members.userId': userId,
+      members: userId,
     });
 
-    if (team) {
-      team.members = team.members.filter(m => m.userId.toString() !== userId);
-
-      // Delete team if no members left
-      if (team.members.length === 0) {
-        await Team.findByIdAndDelete(team._id);
-      } else {
-        await team.save();
-      }
+    for (const team of teams) {
+      team.members = team.members.filter(m => m.toString() !== userId);
+      await team.save();
     }
 
     // Delete StreamCount record for this user in this battle
@@ -101,6 +96,8 @@ async function handler(req, res) {
 
     // Save battle
     await battle.save();
+
+    clearBattleLeaderboardCache(battleId);
 
     return res.status(200).json({
       success: true,

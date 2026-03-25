@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import LoadingSpinner from './LoadingSpinner';
 
-export default function BattleJoinModal({ battleId, isOpen, onClose, onSuccess }) {
-  const [step, setStep] = useState(1); // 1: choose mode, 2: team options, 3: success
-  const [mode, setMode] = useState(''); // 'solo' or 'team'
-  const [teamAction, setTeamAction] = useState(''); // 'create' or 'join'
+export default function BattleJoinModal({ battleId, isOpen, onClose, onSuccess, teamOnly = false }) {
+  const getInitialStep = () => (teamOnly ? 2 : 1);
+  const getInitialMode = () => (teamOnly ? 'team' : '');
+  const getInitialTeamAction = () => (teamOnly ? 'create' : '');
+
+  const [step, setStep] = useState(() => getInitialStep()); // 1: choose mode, 2: team options, 3: success
+  const [mode, setMode] = useState(() => getInitialMode()); // 'solo' or 'team'
+  const [teamAction, setTeamAction] = useState(() => getInitialTeamAction()); // 'create' or 'join'
   const [teamName, setTeamName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,14 +19,26 @@ export default function BattleJoinModal({ battleId, isOpen, onClose, onSuccess }
   const [createdTeam, setCreatedTeam] = useState(null);
 
   const reset = () => {
-    setStep(1);
-    setMode('');
-    setTeamAction('');
+    setStep(getInitialStep());
+    setMode(getInitialMode());
+    setTeamAction(getInitialTeamAction());
     setTeamName('');
     setInviteCode('');
     setError('');
     setCreatedTeam(null);
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      setStep(getInitialStep());
+      setMode(getInitialMode());
+      setTeamAction(getInitialTeamAction());
+      setTeamName('');
+      setInviteCode('');
+      setError('');
+      setCreatedTeam(null);
+    }
+  }, [isOpen]);
 
   const handleClose = () => {
     reset();
@@ -190,7 +206,30 @@ export default function BattleJoinModal({ battleId, isOpen, onClose, onSuccess }
     }
   };
 
+  const handleCreateAnotherTeam = () => {
+    setStep(2);
+    setMode('team');
+    setTeamAction('create');
+    setTeamName('');
+    setInviteCode('');
+    setError('');
+    setCreatedTeam(null);
+  };
+
   if (!isOpen) return null;
+
+  const successTitle = mode === 'team' && teamAction === 'create'
+    ? 'Team Created!'
+    : 'Successfully Joined!';
+
+  const successMessage =
+    mode === 'solo'
+      ? 'Playing solo. Ready to stream.'
+      : mode === 'team' && teamAction === 'create'
+        ? createdTeam?.joinedAsMember === false
+          ? `Team created. You stayed on ${createdTeam.activeTeamName || 'your current team'}, and this invite code is ready to share.`
+          : 'Team created and you joined as the first member.'
+        : 'Successfully joined team.';
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -213,8 +252,8 @@ export default function BattleJoinModal({ battleId, isOpen, onClose, onSuccess }
           <div>
             <h2 className="font-display text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-[#f3e8ff] via-[#d8b4fe] to-[#9333ea] mb-1.5 tracking-tight drop-shadow-sm">
               {step === 1 && 'Deploy Force'}
-              {step === 2 && mode === 'team' && 'Team Battles'}
-              {step === 3 && 'Successfully Joined'}
+              {step === 2 && mode === 'team' && (teamOnly ? 'Team Command' : 'Team Battles')}
+              {step === 3 && successTitle}
             </h2>
             <div className="h-1 w-16 bg-gradient-to-r from-[#c77dff] to-[#5a189a] rounded-full shadow-[0_0_10px_rgba(157,78,221,0.5)]" />
           </div>
@@ -286,6 +325,10 @@ export default function BattleJoinModal({ battleId, isOpen, onClose, onSuccess }
           {/* Step 2: Team Options */}
           {step === 2 && mode === 'team' && (
             <div className="space-y-4">
+              <p className="text-gray-400 text-sm font-medium mb-2">
+                Create invite-code teams or join one. Your score can only count toward one active team at a time.
+              </p>
+
               <div className="flex gap-2 mb-6 bg-black/40 p-1 rounded-xl border border-white/5">
                 <button
                   onClick={() => setTeamAction('create')}
@@ -328,6 +371,9 @@ export default function BattleJoinModal({ battleId, isOpen, onClose, onSuccess }
                       disabled={loading}
                     />
                     <p className="text-xs text-gray-500 mt-2 font-medium">{teamName.length}/50 characters available</p>
+                    <p className="text-xs text-gray-500 mt-1 font-medium">
+                      If you already belong to another team in this battle, this new team will still be created and kept separate for invites.
+                    </p>
                   </div>
 
                   <button
@@ -399,12 +445,8 @@ export default function BattleJoinModal({ battleId, isOpen, onClose, onSuccess }
               </div>
 
               <div>
-                <h3 className="text-3xl font-black text-white mb-2 tracking-tight">Successfully Joined!</h3>
-                <p className="text-gray-400 font-medium">
-                  {mode === 'solo' && "Playing solo. Ready to stream."}
-                  {mode === 'team' && teamAction === 'create' && "Team created. You can now invite members."}
-                  {mode === 'team' && teamAction === 'join' && "Successfully joined team."}
-                </p>
+                <h3 className="text-3xl font-black text-white mb-2 tracking-tight">{successTitle}</h3>
+                <p className="text-gray-400 font-medium">{successMessage}</p>
               </div>
 
               {createdTeam && (
@@ -422,8 +464,21 @@ export default function BattleJoinModal({ battleId, isOpen, onClose, onSuccess }
                       COPY CODE
                     </span>
                   </button>
-                  <p className="text-xs text-gray-500 font-medium mt-3">Share this code with your team</p>
+                  <p className="text-xs text-gray-500 font-medium mt-3">
+                    {createdTeam.joinedAsMember === false
+                      ? 'Share this code with the players for this region. You are not counted as a member of this team.'
+                      : 'Share this code with your team.'}
+                  </p>
                 </div>
+              )}
+
+              {mode === 'team' && teamAction === 'create' && (
+                <button
+                  onClick={handleCreateAnotherTeam}
+                  className="group relative w-full overflow-hidden bg-white/5 text-gray-300 hover:text-white border border-white/10 hover:border-white/30 font-bold py-4 rounded-xl transition-all duration-300"
+                >
+                  <span className="relative z-10 tracking-widest uppercase">CREATE ANOTHER TEAM</span>
+                </button>
               )}
 
               <button

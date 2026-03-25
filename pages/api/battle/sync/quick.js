@@ -5,11 +5,18 @@ import Team from '../../../../models/Team';
 import User from '../../../../models/User';
 import BattleStats from '../../../../models/BattleStats';
 import SyncLog from '../../../../models/SyncLog';
-import { getRecentTracks, matchTrack } from '../../../../utils/lastfm';
+import { matchTrack } from '../../../../utils/lastfm';
 import { createHandler, withCors, withRateLimit, withAuth } from '../../../../lib/middleware';
 import { logger } from '../../../../utils/logger';
 import { updateStatsWithScrobble } from '../../../../utils/btsStats';
 import mongoose from 'mongoose';
+import {
+  getBattleVerificationUnavailableMessage,
+  getRecentTracksForUser,
+  getTrackingServiceLabel,
+  getUserTrackingAccountKey,
+  userSupportsBattleVerification,
+} from '../../../../utils/tracking';
 
 function getEffectiveBattleStatus(battle) {
   if (battle.status === 'ended') return 'ended';
@@ -98,8 +105,12 @@ async function handler(req, res) {
 
     // Check if user is participant
     const user = await User.findById(req.userId);
-    if (!user.lastfmUsername) {
-      return res.status(400).json({ error: 'Last.fm username not set' });
+    if (!getUserTrackingAccountKey(user)) {
+      return res.status(400).json({ error: 'Tracking service not connected' });
+    }
+
+    if (!userSupportsBattleVerification(user)) {
+      return res.status(400).json({ error: getBattleVerificationUnavailableMessage(user) });
     }
 
     if (!battle.participants.some(p => p.toString() === req.userId)) {
@@ -144,8 +155,8 @@ async function handler(req, res) {
 
     // Fetch scrobbles with pagination (max 4 pages = 800 tracks)
     const countScrobblesFrom = (streamCount.countingStartedAt || streamCount.createdAt).getTime();
-    const fetchResult = await getRecentTracks(
-      user.lastfmUsername,
+    const fetchResult = await getRecentTracksForUser(
+      user,
       Math.max(battle.startTime.getTime(), countScrobblesFrom),
       battle.endTime.getTime(),
       { maxPages: 4, delayBetweenRequests: 200, includeMeta: true } // ~800 scrobbles, ~4 seconds
@@ -154,7 +165,7 @@ async function handler(req, res) {
     const fetchMeta = fetchResult.meta;
 
     if (fetchMeta?.partial) {
-      logger.warn(`⚠️ ${user.username}: Partial Last.fm data`, {
+      logger.warn(`⚠️ ${user.username}: Partial ${getTrackingServiceLabel(user.trackingService)} data`, {
         partial: true,
         hadError: fetchMeta.hadError,
         hitMaxPages: fetchMeta.hitMaxPages,
@@ -251,6 +262,17 @@ async function handler(req, res) {
       executionTime: Date.now() - startTime
     });
 
+    let syncMessage = 'Scrobbles synced successfully';
+    if (count === 0) {
+      if (recentTracks.length === 0) {
+        syncMessage = `No ${getTrackingServiceLabel(user.trackingService)} tracks found since you joined this battle yet`;
+      } else {
+        syncMessage = 'Recent tracks were found, but none matched this battle playlist';
+      }
+    } else if (isCheater) {
+      syncMessage = 'Scrobbles synced (suspicious pattern detected)';
+    }
+
     // Log sync completion
     try {
       await SyncLog.create({
@@ -271,7 +293,11 @@ async function handler(req, res) {
       count,
       isCheater,
       syncType: 'quick',
-      message: isCheater ? 'Scrobbles synced (suspicious pattern detected)' : 'Scrobbles synced successfully',
+      message: syncMessage,
+      trackingService: user.trackingService,
+      recentTracksFetched: recentTracks.length,
+      matchedTracks: matchedTracks.length,
+      countingStartedAt: streamCount.countingStartedAt || streamCount.createdAt,
       executionTime: Date.now() - startTime
     });
 

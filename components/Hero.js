@@ -86,7 +86,7 @@ export default function Hero() {
                 </svg>
               </div>
               <h3 className="text-base sm:text-lg font-black text-white mb-2 tracking-tight">Real Streams</h3>
-              <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">Verified through Last.fm scrobbles for guaranteed authenticity</p>
+              <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">Verified through supported tracking services for guaranteed authenticity</p>
             </div>
 
             <div className="group card-glass p-5 sm:p-6 animate-scale-in hover:-translate-y-2 transition-all duration-400 delay-75">
@@ -183,7 +183,7 @@ export default function Hero() {
                 </svg>
               </div>
               <h3 className="text-lg font-black text-white mb-2 tracking-tight">Real Streams</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">Verified through Last.fm scrobbles for guaranteed authenticity</p>
+              <p className="text-gray-400 text-sm leading-relaxed">Verified through supported tracking services for guaranteed authenticity</p>
             </div>
 
             <div className="group card-glass p-6 animate-scale-in hover:-translate-y-2 transition-all duration-400 delay-75">

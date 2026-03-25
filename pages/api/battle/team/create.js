@@ -4,6 +4,7 @@ import Battle from '../../../../models/Battle';
 import Team from '../../../../models/Team';
 import StreamCount from '../../../../models/StreamCount';
 import { createTeamSchema } from '../../../../lib/schemas';
+import { clearBattleLeaderboardCache } from '../../../../lib/leaderboard-cache';
 import crypto from 'crypto';
 
 /**
@@ -48,18 +49,13 @@ async function handler(req, res) {
       return res.status(403).json({ error: 'You must join the battle before creating a team' });
     }
 
-    // Check if user is already in a team for this battle
-    const existingTeam = await Team.findOne({
+    // A user can own multiple teams, but StreamCount.teamId only supports
+    // one active membership for scoring within a battle.
+    const activeTeam = await Team.findOne({
       battleId,
       members: userId
     });
-
-    if (existingTeam) {
-      return res.status(400).json({
-        error: 'You are already in a team for this battle',
-        teamName: existingTeam.name
-      });
-    }
+    const creatorJoinsTeam = !activeTeam;
 
     // Generate unique invite code
     let inviteCode;
@@ -82,24 +78,30 @@ async function handler(req, res) {
       battleId,
       name: teamName,
       creatorId: userId,
-      members: [userId],
+      members: creatorJoinsTeam ? [userId] : [],
       inviteCode,
     });
 
-    // Update user's StreamCount to set teamId (or create if doesn't exist yet)
-    await StreamCount.findOneAndUpdate(
-      { battleId, userId },
-      { teamId: team._id },
-      { upsert: true, setDefaultsOnInsert: true }
-    );
+    if (creatorJoinsTeam) {
+      // First team in this battle: make the creator the initial member.
+      await StreamCount.findOneAndUpdate(
+        { battleId, userId },
+        { teamId: team._id },
+        { upsert: true, setDefaultsOnInsert: true }
+      );
+    }
+
+    clearBattleLeaderboardCache(battleId);
 
     return res.status(201).json({
       team: {
         id: team._id.toString(),
         name: team.name,
         inviteCode: team.inviteCode,
-        members: [userId],
-        memberCount: 1,
+        members: creatorJoinsTeam ? [userId] : [],
+        memberCount: team.members.length,
+        joinedAsMember: creatorJoinsTeam,
+        activeTeamName: activeTeam?.name || null,
       },
     });
 

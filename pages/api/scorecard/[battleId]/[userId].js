@@ -6,6 +6,7 @@ import User from '../../../../models/User';
 import mongoose from 'mongoose';
 import { createHandler, withCors } from '../../../../lib/middleware';
 import { logger } from '../../../../utils/logger';
+import { buildBattleLeaderboard, sortBattleLeaderboard } from '../../../../lib/leaderboard-utils';
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -47,63 +48,19 @@ async function handler(req, res) {
 
     // If finalLeaderboard is empty, build it from StreamCount
     if (leaderboard.length === 0) {
+      const battleTeams = await Team.find({ battleId }).select('name members');
       const streamCounts = await StreamCount.find({ battleId })
         .populate('userId', 'username displayName avatarUrl')
         .populate({ path: 'teamId', strictPopulate: false });
 
-      // Aggregate team scores
-      const teamScoresMap = new Map();
-      const soloPlayers = [];
-
-      for (const sc of streamCounts) {
-        if (sc.teamId) {
-          // Team member
-          if (!teamScoresMap.has(sc.teamId._id.toString())) {
-            teamScoresMap.set(sc.teamId._id.toString(), {
-              type: 'team',
-              teamId: sc.teamId._id,
-              teamName: sc.teamId.name,
-              memberCount: sc.teamId.members.length,
-              totalScore: 0,
-              members: [],
-              isCheater: false,
-            });
-          }
-
-          const teamData = teamScoresMap.get(sc.teamId._id.toString());
-          teamData.totalScore += sc.count;
-          teamData.members.push({
-            userId: sc.userId._id,
-            username: sc.userId.username,
-            displayName: sc.userId.displayName,
-            count: sc.count,
-            isCheater: sc.isCheater || false,
-          });
-          if (sc.isCheater) {
-            teamData.isCheater = true;
-          }
-        } else {
-          // Solo player
-          soloPlayers.push({
-            type: 'solo',
-            userId: sc.userId._id,
-            username: sc.userId.username,
-            displayName: sc.userId.displayName,
-            avatarUrl: sc.userId.avatarUrl,
-            count: sc.count,
-            isCheater: sc.isCheater || false,
-          });
-        }
-      }
-
-      const teams = Array.from(teamScoresMap.values());
+      const { teams, soloPlayers } = buildBattleLeaderboard({
+        streamCounts,
+        battleTeams,
+        includeTeamMembers: true,
+      });
       const combinedLeaderboard = [...teams, ...soloPlayers];
 
-      leaderboard = combinedLeaderboard.sort((a, b) => {
-        const scoreA = a.type === 'team' ? a.totalScore : a.count;
-        const scoreB = b.type === 'team' ? b.totalScore : b.count;
-        return scoreB - scoreA;
-      });
+      leaderboard = sortBattleLeaderboard(combinedLeaderboard);
     } else {
       // Populate finalLeaderboard data
       leaderboard = await Promise.all(battle.finalLeaderboard.map(async (entry) => {

@@ -15,8 +15,15 @@ const Battle = (await import('../models/Battle.js')).default;
 const StreamCount = (await import('../models/StreamCount.js')).default;
 const Team = (await import('../models/Team.js')).default;
 const User = (await import('../models/User.js')).default;
-const { getRecentTracks, matchTrack } = await import('../utils/lastfm.js');
+const { matchTrack } = await import('../utils/lastfm.js');
 const { logger } = await import('../utils/logger.js');
+const {
+  getBattleVerificationUnavailableMessage,
+  getRecentTracksForUser,
+  getTrackingServiceLabel,
+  getUserTrackingAccountKey,
+  userSupportsBattleVerification,
+} = await import('../utils/tracking.js');
 const mongoose = (await import('mongoose')).default;
 
 function detectCheating(timestamps) {
@@ -90,8 +97,12 @@ async function fullSync() {
       throw new Error('User not found');
     }
 
-    if (!user.lastfmUsername) {
-      throw new Error('User has no Last.fm username');
+    if (!getUserTrackingAccountKey(user)) {
+      throw new Error('User has no tracking service connected');
+    }
+
+    if (!userSupportsBattleVerification(user)) {
+      throw new Error(getBattleVerificationUnavailableMessage(user));
     }
 
     // Check if user is participant
@@ -119,8 +130,10 @@ async function fullSync() {
 
     const countScrobblesFrom = (streamCount.countingStartedAt || streamCount.createdAt).getTime();
 
-    logger.info('Fetching ALL scrobbles for user', {
-      username: user.lastfmUsername,
+    logger.info('Fetching ALL recent tracks for user', {
+      username: user.username,
+      trackingService: getTrackingServiceLabel(user.trackingService),
+      trackingUsername: user.trackingUsername || user.lastfmUsername,
       battleId,
       userId,
       from: new Date(Math.max(battle.startTime.getTime(), countScrobblesFrom)),
@@ -128,8 +141,8 @@ async function fullSync() {
     });
 
     // Fetch ALL tracks (no maxPages limit, full pagination)
-    const fetchResult = await getRecentTracks(
-      user.lastfmUsername,
+    const fetchResult = await getRecentTracksForUser(
+      user,
       Math.max(battle.startTime.getTime(), countScrobblesFrom),
       battle.endTime.getTime(),
       { maxPages: null, delayBetweenRequests: 200, includeMeta: true } // FULL PAGINATION
@@ -138,7 +151,7 @@ async function fullSync() {
     const fetchMeta = fetchResult.meta;
 
     if (fetchMeta?.partial) {
-      logger.warn(`⚠️ ${user.username}: Partial Last.fm data`, {
+      logger.warn(`⚠️ ${user.username}: Partial ${getTrackingServiceLabel(user.trackingService)} data`, {
         partial: true,
         hadError: fetchMeta.hadError,
         hitMaxPages: fetchMeta.hitMaxPages,
@@ -147,7 +160,7 @@ async function fullSync() {
       });
     }
 
-    logger.info(`Fetched ${recentTracks.length} total scrobbles from Last.fm`);
+    logger.info(`Fetched ${recentTracks.length} total recent tracks from ${getTrackingServiceLabel(user.trackingService)}`);
 
     // Match tracks against playlist
     const matchedTracks = recentTracks.filter(scrobble => {

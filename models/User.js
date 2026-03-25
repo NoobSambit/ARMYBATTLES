@@ -13,6 +13,21 @@ const UserSchema = new mongoose.Schema({
     unique: true,
     trim: true
   },
+  trackingService: {
+    type: String,
+    enum: ['lastfm', 'statsfm', 'musicat'],
+    default: 'lastfm'
+  },
+  trackingUsername: {
+    type: String,
+    default: null,
+    trim: true
+  },
+  trackingUserId: {
+    type: String,
+    default: null,
+    trim: true
+  },
   displayName: {
     type: String,
     default: null,
@@ -23,6 +38,11 @@ const UserSchema = new mongoose.Schema({
     default: null
   },
   lastfmProfileUrl: {
+    type: String,
+    default: null,
+    trim: true
+  },
+  trackingProfileUrl: {
     type: String,
     default: null,
     trim: true

@@ -317,13 +317,15 @@ export default function Dashboard() {
                 <p className="font-black text-xl text-white tracking-wide">{user.username}</p>
               </div>
               <div>
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Last.fm</p>
-                {user.lastfmUsername ? (
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">
+                  {user.trackingServiceLabel || 'Tracking Service'}
+                </p>
+                {user.trackingUsername ? (
                   <div>
-                    <p className="font-black text-lg text-[#e0aaff] tracking-wide">{user.lastfmUsername}</p>
-                    {user.lastfmProfileUrl && (
+                    <p className="font-black text-lg text-[#e0aaff] tracking-wide">{user.trackingUsername}</p>
+                    {user.trackingProfileUrl && (
                       <a
-                        href={user.lastfmProfileUrl}
+                        href={user.trackingProfileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs font-bold text-[#c77dff] hover:text-white transition-colors uppercase tracking-widest inline-flex items-center gap-1 mt-1.5"
@@ -331,6 +333,14 @@ export default function Dashboard() {
                         View Profile <span className="material-symbols-outlined text-[14px]">open_in_new</span>
                       </a>
                     )}
+                    {!user.supportsBattleVerification && (
+                      <p className="mt-2 inline-block rounded-lg border border-yellow-500/20 bg-yellow-500/10 px-3 py-1.5 text-xs font-bold tracking-wide text-yellow-300">
+                        Login only. Battle verification is not available for this service yet.
+                      </p>
+                    )}
+                    <p className="mt-2 text-xs text-gray-500">
+                      One tracker is connected at a time. Log out and sign back in to switch services.
+                    </p>
                   </div>
                 ) : (
                   <p className="font-bold text-yellow-500/80 text-sm tracking-wide bg-yellow-500/10 px-3 py-1.5 rounded-lg border border-yellow-500/20 inline-block">Not connected</p>

@@ -6,7 +6,6 @@ const teamSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Battle',
       required: true,
-      index: true,
     },
     name: {
       type: String,

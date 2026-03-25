@@ -84,6 +84,8 @@ export default function TeamDetailsModal({ teamId, isOpen, onClose }) {
   if (!isOpen) return null;
 
   const isMember = currentUser && team?.members.some(m => m.userId === currentUser.id);
+  const isCreator = currentUser && team?.creatorId === currentUser.id;
+  const canViewInviteCode = isMember || isCreator;
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -134,7 +136,7 @@ export default function TeamDetailsModal({ teamId, isOpen, onClose }) {
           {!loading && !error && team && (
             <div className="space-y-8">
               {/* Invite Code (only for members) */}
-              {isMember && (
+              {canViewInviteCode && (
                 <div className="relative overflow-hidden bg-black/40 border border-[#7b2cbf]/40 p-5 rounded-2xl shadow-[0_0_20px_rgba(123,44,191,0.1)]">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-[#c77dff]/10 blur-3xl rounded-full"></div>
                   <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">

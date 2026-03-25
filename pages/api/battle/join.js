@@ -6,6 +6,12 @@ import mongoose from 'mongoose';
 import { createHandler, withCors, withRateLimit, withAuth, withValidation } from '../../../lib/middleware';
 import { joinBattleSchema } from '../../../lib/schemas';
 import { logger } from '../../../utils/logger';
+import { clearBattleLeaderboardCache } from '../../../lib/leaderboard-cache';
+import {
+  getBattleVerificationUnavailableMessage,
+  getUserTrackingAccountKey,
+  userSupportsBattleVerification,
+} from '../../../utils/tracking';
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -22,8 +28,12 @@ async function handler(req, res) {
     }
 
     const user = await User.findById(req.userId);
-    if (!user || !user.lastfmUsername) {
-      return res.status(400).json({ error: 'Please set your Last.fm username before joining a battle' });
+    if (!user || !getUserTrackingAccountKey(user)) {
+      return res.status(400).json({ error: 'Please connect a tracking service before joining a battle' });
+    }
+
+    if (!userSupportsBattleVerification(user)) {
+      return res.status(400).json({ error: getBattleVerificationUnavailableMessage(user) });
     }
 
     const battle = await Battle.findById(battleId);
@@ -91,6 +101,8 @@ async function handler(req, res) {
     if (isNewParticipant) {
       logger.info('User joined battle', { userId: req.userId, battleId, battleName: battle.name });
     }
+
+    clearBattleLeaderboardCache(battleId);
 
     res.status(200).json({
       message: isNewParticipant ? 'Successfully joined battle' : 'You have already joined this battle',

@@ -4,9 +4,16 @@ import StreamCount from '../../../models/StreamCount';
 import Team from '../../../models/Team';
 import User from '../../../models/User';
 import BattleStats from '../../../models/BattleStats';
-import { getRecentTracks, matchTrack } from '../../../utils/lastfm';
+import { matchTrack } from '../../../utils/lastfm';
 import { logger } from '../../../utils/logger';
 import { updateStatsWithScrobble } from '../../../utils/btsStats';
+import { buildBattleLeaderboard, sortBattleLeaderboard } from '../../../lib/leaderboard-utils';
+import {
+  getRecentTracksForUser,
+  getTrackingServiceLabel,
+  getUserTrackingAccountKey,
+  userSupportsBattleVerification,
+} from '../../../utils/tracking';
 
 // Removed Socket.io support for Netlify serverless compatibility
 
@@ -19,58 +26,19 @@ async function freezeBattle(battle) {
     const streamCounts = await StreamCount.find({ battleId: battle._id })
       .populate('userId', 'username displayName')
       .populate({ path: 'teamId', strictPopulate: false });
+    const battleTeams = await Team.find({ battleId: battle._id }).select('name members');
 
-    // Build final leaderboard with team support
-    const teamScoresMap = new Map();
-    const soloPlayers = [];
-
-    for (const sc of streamCounts) {
-      if (sc.teamId) {
-        // Team member
-        const teamIdStr = sc.teamId._id.toString();
-        if (!teamScoresMap.has(teamIdStr)) {
-          teamScoresMap.set(teamIdStr, {
-            type: 'team',
-            teamId: sc.teamId._id,
-            teamName: sc.teamId.name,
-            memberCount: sc.teamId.members.length,
-            totalScore: 0,
-            members: [], // Store individual team member scores
-          });
-        }
-
-        const teamData = teamScoresMap.get(teamIdStr);
-        teamData.totalScore += sc.count;
-
-        // Add individual team member data
-        teamData.members.push({
-          userId: sc.userId._id,
-          username: sc.userId.username,
-          displayName: sc.userId.displayName,
-          count: sc.count,
-        });
-      } else {
-        // Solo player
-        soloPlayers.push({
-          type: 'solo',
-          userId: sc.userId._id,
-          username: sc.userId.username,
-          displayName: sc.userId.displayName,
-          count: sc.count,
-        });
-      }
-    }
+    const { teams, soloPlayers } = buildBattleLeaderboard({
+      streamCounts,
+      battleTeams,
+      includeTeamMembers: true,
+    });
 
     // Combine teams and solo players
-    const teams = Array.from(teamScoresMap.values());
     const combinedLeaderboard = [...teams, ...soloPlayers];
 
     // Sort by score
-    const finalLeaderboard = combinedLeaderboard.sort((a, b) => {
-      const scoreA = a.type === 'team' ? a.totalScore : a.count;
-      const scoreB = b.type === 'team' ? b.totalScore : b.count;
-      return scoreB - scoreA;
-    });
+    const finalLeaderboard = sortBattleLeaderboard(combinedLeaderboard);
 
     await Battle.findByIdAndUpdate(battle._id, {
       status: 'ended',
@@ -176,23 +144,24 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
     // NOTE: Since users can only join one active/upcoming battle at a time (enforced in join.js),
     // each user will typically only have 1 battle in their battles array. This deduplication
     // is kept for backward compatibility and edge cases.
-    const uniqueParticipantsMap = new Map(); // username -> { user, battles: [battleData] }
+    const uniqueParticipantsMap = new Map(); // accountKey -> { user, battles: [battleData] }
 
     for (const battle of activeBattles) {
       const participants = await User.find({ _id: { $in: battle.participants } });
 
       for (const participant of participants) {
-        if (!participant.lastfmUsername) continue;
+        if (!getUserTrackingAccountKey(participant)) continue;
+        if (!userSupportsBattleVerification(participant)) continue;
 
-        const username = participant.lastfmUsername;
-        if (!uniqueParticipantsMap.has(username)) {
-          uniqueParticipantsMap.set(username, {
+        const accountKey = getUserTrackingAccountKey(participant);
+        if (!uniqueParticipantsMap.has(accountKey)) {
+          uniqueParticipantsMap.set(accountKey, {
             user: participant,
             battles: []
           });
         }
 
-        uniqueParticipantsMap.get(username).battles.push(battle);
+        uniqueParticipantsMap.get(accountKey).battles.push(battle);
       }
     }
 
@@ -252,7 +221,7 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
         break;
       }
 
-      const [username, data] = participantsToProcess[i];
+      const [accountKey, data] = participantsToProcess[i];
 
       const participant = data.user;
       const participantBattles = data.battles;
@@ -266,7 +235,7 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
         // OPTIMIZATION: Check cache for participant tracks
         // Include battle IDs in cache key to prevent cross-battle contamination
         const battleIds = participantBattles.map(b => b._id.toString()).sort().join(',');
-        const cacheKey = `${username}-${earliestStartTime}-${battleIds}`;
+        const cacheKey = `${accountKey}-${earliestStartTime}-${battleIds}`;
         const cachedData = participantTrackCache.get(cacheKey);
         let recentTracks;
         let fetchMeta = null;
@@ -278,8 +247,8 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
         } else {
           // Wrap Last.fm fetch with timeout
           // Use faster settings for serverless: 5s per request, 100ms delay between pages
-          const fetchPromise = getRecentTracks(
-            username,
+          const fetchPromise = getRecentTracksForUser(
+            participant,
             earliestStartTime,
             now.getTime(),
             {
@@ -304,7 +273,7 @@ async function verifyScrobbles(shardId = null, totalShards = 4) {
           }
 
           if (fetchMeta?.partial) {
-            logger.warn(`⚠️ ${participant.username}: Partial Last.fm data`, {
+            logger.warn(`⚠️ ${participant.username}: Partial ${getTrackingServiceLabel(participant.trackingService)} data`, {
               partial: true,
               hadError: fetchMeta.hadError,
               hitMaxPages: fetchMeta.hitMaxPages,

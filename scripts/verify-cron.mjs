@@ -15,9 +15,15 @@ const Team = (await import('../models/Team.js')).default;
 const User = (await import('../models/User.js')).default;
 const BattleStats = (await import('../models/BattleStats.js')).default;
 const SyncLog = (await import('../models/SyncLog.js')).default;
-const { getRecentTracks, matchTrack } = await import('../utils/lastfm.js');
+const { matchTrack } = await import('../utils/lastfm.js');
 const { logger } = await import('../utils/logger.js');
 const { updateStatsWithScrobble } = await import('../utils/btsStats.js');
+const {
+  getRecentTracksForUser,
+  getTrackingServiceLabel,
+  getUserTrackingAccountKey,
+  userSupportsBattleVerification,
+} = await import('../utils/tracking.js');
 
 // Cache for participant tracks (same as verify.js)
 const participantTrackCache = new Map();
@@ -130,17 +136,18 @@ async function verifyScrobbles() {
       const participants = await User.find({ _id: { $in: battle.participants } });
 
       for (const participant of participants) {
-        if (!participant.lastfmUsername) continue;
+        if (!getUserTrackingAccountKey(participant)) continue;
+        if (!userSupportsBattleVerification(participant)) continue;
 
-        const username = participant.lastfmUsername;
-        if (!uniqueParticipantsMap.has(username)) {
-          uniqueParticipantsMap.set(username, {
+        const accountKey = getUserTrackingAccountKey(participant);
+        if (!uniqueParticipantsMap.has(accountKey)) {
+          uniqueParticipantsMap.set(accountKey, {
             user: participant,
             battles: []
           });
         }
 
-        uniqueParticipantsMap.get(username).battles.push(battle);
+        uniqueParticipantsMap.get(accountKey).battles.push(battle);
       }
     }
 
@@ -159,14 +166,14 @@ async function verifyScrobbles() {
     // No round-robin needed - GitHub Actions has no timeout constraints
     let participantsProcessed = 0;
 
-    for (const [username, data] of participantsToProcess) {
+    for (const [accountKey, data] of participantsToProcess) {
       const participant = data.user;
       const participantBattles = data.battles;
 
       try {
         const earliestStartTime = Math.min(...participantBattles.map(b => b.startTime.getTime()));
         const battleIds = participantBattles.map(b => b._id.toString()).sort().join(',');
-        const cacheKey = `${username}-${earliestStartTime}-${battleIds}`;
+        const cacheKey = `${accountKey}-${earliestStartTime}-${battleIds}`;
 
         let recentTracks;
         let fetchMeta = null;
@@ -178,7 +185,7 @@ async function verifyScrobbles() {
         } else {
           // GitHub Actions: Use 30-second timeout per request, no page limit, reduced delay
           const fetchStartTime = Date.now();
-          const fetchResult = await getRecentTracks(username, earliestStartTime, now.getTime(), {
+          const fetchResult = await getRecentTracksForUser(participant, earliestStartTime, now.getTime(), {
             timeout: 30000,
             maxPages: null, // Fetch ALL pages (no limit)
             delayBetweenRequests: 100, // Reduce delay from 200ms to 100ms for faster fetching
@@ -190,11 +197,11 @@ async function verifyScrobbles() {
 
           // Log if fetching took unusually long or returned many tracks
           if (fetchDuration > 5000 || recentTracks.length > 200) {
-            logger.info(`${username}: Fetched ${recentTracks.length} tracks in ${fetchDuration}ms`);
+            logger.info(`${participant.username}: Fetched ${recentTracks.length} ${getTrackingServiceLabel(participant.trackingService)} tracks in ${fetchDuration}ms`);
           }
 
           if (fetchMeta?.partial) {
-            logger.warn(`⚠️ ${participant.username}: Partial Last.fm data`, {
+            logger.warn(`⚠️ ${participant.username}: Partial ${getTrackingServiceLabel(participant.trackingService)} data`, {
               partial: true,
               hadError: fetchMeta.hadError,
               hitMaxPages: fetchMeta.hitMaxPages,

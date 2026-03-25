@@ -4,6 +4,7 @@ import Battle from '../../../../models/Battle';
 import Team from '../../../../models/Team';
 import StreamCount from '../../../../models/StreamCount';
 import { joinTeamSchema } from '../../../../lib/schemas';
+import { clearBattleLeaderboardCache } from '../../../../lib/leaderboard-cache';
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -63,6 +64,8 @@ async function handler(req, res) {
       { teamId: team._id },
       { upsert: true, setDefaultsOnInsert: true }
     );
+
+    clearBattleLeaderboardCache(team.battleId.toString());
 
 
     return res.status(200).json({

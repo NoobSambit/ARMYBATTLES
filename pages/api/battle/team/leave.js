@@ -4,6 +4,7 @@ import Battle from '../../../../models/Battle';
 import Team from '../../../../models/Team';
 import StreamCount from '../../../../models/StreamCount';
 import { leaveTeamSchema } from '../../../../lib/schemas';
+import { clearBattleLeaderboardCache } from '../../../../lib/leaderboard-cache';
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -40,34 +41,21 @@ async function handler(req, res) {
     // Remove user from team
     team.members = team.members.filter(m => m.toString() !== userId);
 
-    // If team is now empty, delete it
-    if (team.members.length === 0) {
-      await Team.findByIdAndDelete(teamId);
+    await team.save();
 
-      // Update user's StreamCount to remove teamId (becomes solo player)
-      await StreamCount.findOneAndUpdate(
-        { battleId: team.battleId, userId },
-        { teamId: null }
-      );
+    // Update user's StreamCount to remove teamId (becomes solo player)
+    await StreamCount.findOneAndUpdate(
+      { battleId: team.battleId, userId },
+      { teamId: null }
+    );
 
+    clearBattleLeaderboardCache(team.battleId.toString());
 
-      return res.status(200).json({
-        message: 'Left team successfully. Team was deleted as it became empty.',
-      });
-    } else {
-      await team.save();
-
-      // Update user's StreamCount to remove teamId (becomes solo player)
-      await StreamCount.findOneAndUpdate(
-        { battleId: team.battleId, userId },
-        { teamId: null }
-      );
-
-
-      return res.status(200).json({
-        message: 'Left team successfully',
-      });
-    }
+    return res.status(200).json({
+      message: 'Left team successfully',
+      teamStillActive: true,
+      memberCount: team.members.length,
+    });
 
   } catch (error) {
     console.error('Leave team error:', error);

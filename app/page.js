@@ -213,7 +213,7 @@ export default function Home() {
 
             <div className="flex w-full max-w-3xl flex-col items-center gap-8 pb-5 md:pb-8">
               <p className="text-balance text-base font-medium leading-8 text-[#E5E7EB] drop-shadow-[0_8px_24px_rgba(0,0,0,0.45)] md:text-[1.4rem]">
-                Transform your music listening into competitive battles. Sync your Last.fm account, stream designated tracks, and conquer the live global leaderboards.
+                Transform your music listening into competitive battles. Connect your Last.fm account, stream designated tracks, and conquer the live global leaderboards.
               </p>
               <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-4">
                 <Link

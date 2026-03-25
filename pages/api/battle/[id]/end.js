@@ -1,9 +1,12 @@
 import connectDB from '../../../../utils/db';
 import Battle from '../../../../models/Battle';
 import StreamCount from '../../../../models/StreamCount';
+import Team from '../../../../models/Team';
 import mongoose from 'mongoose';
 import { createHandler, withCors, withRateLimit, withAuth } from '../../../../lib/middleware';
 import { logger } from '../../../../utils/logger';
+import { buildBattleLeaderboard, sortBattleLeaderboard } from '../../../../lib/leaderboard-utils';
+import { clearBattleLeaderboardCache } from '../../../../lib/leaderboard-cache';
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -37,65 +40,19 @@ async function handler(req, res) {
     const streamCounts = await StreamCount.find({ battleId: id })
       .populate('userId', 'username displayName avatarUrl')
       .populate('teamId', 'name members');
+    const battleTeams = await Team.find({ battleId: id }).select('name members');
 
-    // Build final leaderboard with team support
-    const teamScoresMap = new Map();
-    const soloPlayers = [];
-
-    for (const sc of streamCounts) {
-      if (sc.teamId) {
-        // Team member
-        const teamIdStr = sc.teamId._id.toString();
-        if (!teamScoresMap.has(teamIdStr)) {
-          teamScoresMap.set(teamIdStr, {
-            type: 'team',
-            teamId: sc.teamId._id,
-            teamName: sc.teamId.name,
-            memberCount: sc.teamId.members.length,
-            totalScore: 0,
-            isCheater: false,
-            members: [], // Store individual team member scores
-          });
-        }
-
-        const teamData = teamScoresMap.get(teamIdStr);
-        teamData.totalScore += sc.count;
-        if (sc.isCheater) {
-          teamData.isCheater = true;
-        }
-
-        // Add individual team member data
-        teamData.members.push({
-          userId: sc.userId._id,
-          username: sc.userId.username,
-          displayName: sc.userId.displayName,
-          count: sc.count,
-          isCheater: sc.isCheater || false,
-        });
-      } else {
-        // Solo player
-        soloPlayers.push({
-          type: 'solo',
-          userId: sc.userId._id,
-          username: sc.userId.username,
-          displayName: sc.userId.displayName,
-          avatarUrl: sc.userId.avatarUrl,
-          count: sc.count,
-          isCheater: sc.isCheater || false,
-        });
-      }
-    }
+    const { teams, soloPlayers } = buildBattleLeaderboard({
+      streamCounts,
+      battleTeams,
+      includeTeamMembers: true,
+    });
 
     // Combine teams and solo players
-    const teams = Array.from(teamScoresMap.values());
     const combinedLeaderboard = [...teams, ...soloPlayers];
 
     // Sort by score
-    const finalLeaderboard = combinedLeaderboard.sort((a, b) => {
-      const scoreA = a.type === 'team' ? a.totalScore : a.count;
-      const scoreB = b.type === 'team' ? b.totalScore : b.count;
-      return scoreB - scoreA;
-    });
+    const finalLeaderboard = sortBattleLeaderboard(combinedLeaderboard);
 
     // Update battle status
     await Battle.findByIdAndUpdate(id, {
@@ -103,6 +60,8 @@ async function handler(req, res) {
       finalLeaderboard,
       endedAt: new Date(),
     });
+
+    clearBattleLeaderboardCache(id);
 
     logger.info('Battle ended by host', {
       battleId: id,

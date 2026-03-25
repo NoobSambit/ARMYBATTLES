@@ -3,9 +3,15 @@ import Battle from '../../../models/Battle';
 import StreamCount from '../../../models/StreamCount';
 import BattleStats from '../../../models/BattleStats';
 import User from '../../../models/User';
-import { getRecentTracks, matchTrack } from '../../../utils/lastfm';
+import { matchTrack } from '../../../utils/lastfm';
 import { updateStatsWithScrobble } from '../../../utils/btsStats';
 import { createHandler, withCors } from '../../../lib/middleware';
+import {
+  getBattleVerificationUnavailableMessage,
+  getRecentTracksForUser,
+  getUserTrackingAccountKey,
+  userSupportsBattleVerification,
+} from '../../../utils/tracking';
 
 /**
  * Admin endpoint to backfill BattleStats from existing StreamCount data
@@ -94,17 +100,22 @@ async function handler(req, res) {
           try {
             const user = await User.findById(streamCount.userId);
 
-            if (!user || !user.lastfmUsername) {
-              console.log(`Skipping user ${streamCount.userId} - no Last.fm username`);
+            if (!user || !getUserTrackingAccountKey(user)) {
+              console.log(`Skipping user ${streamCount.userId} - no tracking account`);
               continue;
             }
 
-            console.log(`Processing ${user.username} (${user.lastfmUsername})...`);
+            if (!userSupportsBattleVerification(user)) {
+              console.log(`Skipping ${user.username} - ${getBattleVerificationUnavailableMessage(user)}`);
+              continue;
+            }
+
+            console.log(`Processing ${user.username} (${user.trackingService || 'lastfm'}:${user.trackingUsername || user.lastfmUsername})...`);
 
             // Fetch their scrobbles for the battle period
             const countScrobblesFrom = (streamCount.countingStartedAt || streamCount.createdAt).getTime();
-            const recentTracks = await getRecentTracks(
-              user.lastfmUsername,
+            const recentTracks = await getRecentTracksForUser(
+              user,
               Math.max(battle.startTime.getTime(), countScrobblesFrom),
               battle.endTime.getTime(),
               { maxPages: 10, delayBetweenRequests: 200 }

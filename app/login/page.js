@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { getTrackingServiceConfig } from '@/lib/tracking-services';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -12,6 +12,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const serviceConfig = getTrackingServiceConfig('lastfm');
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -19,7 +20,7 @@ export default function Login() {
     setLoading(true);
 
     if (!username.trim() && !profileUrl.trim()) {
-      setError('Please enter either your Last.fm username or profile URL');
+      setError(`Please enter either your ${serviceConfig.label} username or profile URL`);
       setLoading(false);
       return;
     }
@@ -32,6 +33,7 @@ export default function Login() {
         },
         credentials: 'include',
         body: JSON.stringify({
+          service: 'lastfm',
           username: username.trim() || undefined,
           profileUrl: profileUrl.trim() || undefined
         }),
@@ -84,7 +86,7 @@ export default function Login() {
             <h1 className="font-display text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-[#c77dff] mb-3 tracking-tight">
               WELCOME BACK
             </h1>
-            <p className="text-[#D1D5DB] text-sm">Log in with your Last.fm account to join the battles</p>
+            <p className="text-[#D1D5DB] text-sm">Log in with your Last.fm account</p>
           </div>
 
           <div className="space-y-6">
@@ -96,9 +98,15 @@ export default function Login() {
             )}
 
             <form onSubmit={handleLogin} className="space-y-6">
+              <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-100">
+                <p className="font-bold">{serviceConfig.description}</p>
+                <p className="text-xs uppercase tracking-widest mt-1 opacity-80">{serviceConfig.battleSupportNote}</p>
+                <p className="mt-2 text-xs text-slate-200/80">One tracker is allowed per account.</p>
+              </div>
+
               <div className="space-y-2">
                 <label htmlFor="username" className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[14px]">account_circle</span> Last.fm Username
+                  <span className="material-symbols-outlined text-[14px]">account_circle</span> {serviceConfig.usernameLabel}
                 </label>
                 <div className="relative group">
                   <input
@@ -106,7 +114,7 @@ export default function Login() {
                     id="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Enter username"
+                    placeholder={serviceConfig.usernamePlaceholder}
                     className="w-full bg-background-dark/50 border border-white/10 rounded-xl px-4 py-4 text-white placeholder-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono text-sm"
                     disabled={loading}
                     autoComplete="username"
@@ -131,7 +139,7 @@ export default function Login() {
                     id="profileUrl"
                     value={profileUrl}
                     onChange={(e) => setProfileUrl(e.target.value)}
-                    placeholder="https://last.fm/user/..."
+                    placeholder={serviceConfig.profileUrlPlaceholder}
                     className="w-full bg-background-dark/50 border border-white/10 rounded-xl px-4 py-4 text-white placeholder-slate-600 focus:outline-none focus:border-accent-cyan focus:ring-1 focus:ring-accent-cyan transition-all font-mono text-sm"
                     disabled={loading}
                     autoComplete="url"
@@ -166,8 +174,8 @@ export default function Login() {
                   Sign Up
                 </Link>
               </p>
-              <p className="text-slate-500 text-xs text-center max-w-[250px]">
-                Requires an active <a href="https://www.last.fm/join" target="_blank" rel="noopener noreferrer" className="underline hover:text-white">Last.fm</a> account to track your streaming progress.
+              <p className="text-slate-500 text-xs text-center max-w-[280px]">
+                Requires an active <a href={serviceConfig.profileHelpUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-white">{serviceConfig.profileHelpLabel}</a> account to track your streaming progress.
               </p>
             </div>
           </div>

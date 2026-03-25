@@ -1,18 +1,55 @@
 import { createHandler, withCors, withRateLimit, withValidation } from '../../../lib/middleware';
 import connectDB from '../../../utils/db';
 import User from '../../../models/User';
-import { getLastfmProfile } from '../../../utils/lastfm';
 import {
   generateSessionToken,
   getSessionExpiryDate,
   setSessionCookie,
 } from '../../../utils/auth';
+import { getTrackingServiceLabel, normalizeTrackingService } from '../../../lib/tracking-services';
+import { resolveTrackingIdentity, serializeUserForClient } from '../../../utils/tracking';
 import { z } from 'zod';
 
 const loginSchema = z.object({
+  service: z.enum(['lastfm', 'statsfm']).optional(),
   username: z.string().optional(),
   profileUrl: z.string().optional(),
 });
+
+async function generateUniqueAppUsername(baseUsername, service, existingUserId = null) {
+  const normalizedBase = String(baseUsername || service || 'user')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    || 'user';
+
+  const candidates = [
+    normalizedBase,
+    `${normalizedBase}-${service}`,
+  ];
+
+  for (const candidate of candidates) {
+    const existingUser = await User.findOne({ username: candidate });
+    if (!existingUser || existingUser._id.toString() === existingUserId) {
+      return candidate;
+    }
+  }
+
+  let suffix = 2;
+  while (suffix < 1000) {
+    const candidate = `${normalizedBase}-${service}-${suffix}`;
+    const existingUser = await User.findOne({ username: candidate });
+
+    if (!existingUser || existingUser._id.toString() === existingUserId) {
+      return candidate;
+    }
+
+    suffix += 1;
+  }
+
+  throw new Error('Failed to allocate a unique username');
+}
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -20,65 +57,59 @@ async function handler(req, res) {
   }
 
   try {
-    let { username: lastfmUsername, profileUrl } = req.body;
+    const service = normalizeTrackingService(req.body.service);
+    const serviceLabel = getTrackingServiceLabel(service);
+    const { username, profileUrl } = req.body;
 
-    // Extract username from profileUrl if only URL is provided
-    if (!lastfmUsername && profileUrl) {
-      const urlMatch = profileUrl.match(/last\.fm\/user\/([^\/\?#]+)/i);
-      if (urlMatch) {
-        lastfmUsername = urlMatch[1];
-      }
-    }
-
-    // If username is provided but not profileUrl, generate it
-    if (lastfmUsername && !profileUrl) {
-      profileUrl = `https://www.last.fm/user/${lastfmUsername}`;
-    }
-
-    if (!lastfmUsername) {
+    if (!username && !profileUrl) {
       return res.status(400).json({
-        error: 'Please provide either a Last.fm username or profile URL'
+        error: `Please provide either a ${serviceLabel} username or profile URL`
       });
     }
 
-    // Verify the Last.fm username exists by fetching profile
-    // OPTIMIZATION: Single Last.fm API call instead of duplicate (Netlify optimization)
-    const profile = await getLastfmProfile(lastfmUsername);
+    const trackingIdentity = await resolveTrackingIdentity({
+      service,
+      username,
+      profileUrl,
+    });
 
-    if (!profile) {
-      // If getLastfmProfile returns null, it means the API call failed or user doesn't exist
+    if (!trackingIdentity) {
       return res.status(404).json({
-        error: 'Last.fm user not found. Please check your username.'
+        error: `${serviceLabel} user not found. Please check your username.`
       });
     }
 
-    // Extract profile data from the utility function result
-    const displayName = profile.displayName || null;
-    const avatarUrl = profile.avatarUrl || null;
-
-    // Connect to database
     await connectDB();
 
-    // Find or create user
-    let user = await User.findOne({ lastfmUsername: lastfmUsername.toLowerCase() });
+    let user = await User.findOne({ lastfmUsername: trackingIdentity.accountKey });
 
     if (user) {
-      // Update existing user's profile data
-      user.displayName = displayName;
-      user.avatarUrl = avatarUrl;
-      user.lastfmProfileUrl = profileUrl;
+      user.trackingService = trackingIdentity.service;
+      user.trackingUsername = trackingIdentity.trackingUsername;
+      user.trackingUserId = trackingIdentity.trackingUserId;
+      user.trackingProfileUrl = trackingIdentity.trackingProfileUrl;
+      user.displayName = trackingIdentity.displayName;
+      user.avatarUrl = trackingIdentity.avatarUrl;
+      user.lastfmProfileUrl = trackingIdentity.service === 'lastfm' ? trackingIdentity.trackingProfileUrl : null;
     } else {
-      // Create new user
+      const publicUsername = await generateUniqueAppUsername(
+        trackingIdentity.trackingUsername || trackingIdentity.displayName || service,
+        trackingIdentity.service
+      );
+
       user = new User({
-        username: lastfmUsername.toLowerCase(),
-        lastfmUsername: lastfmUsername.toLowerCase(),
-        displayName,
-        avatarUrl,
-        lastfmProfileUrl: profileUrl,
+        username: publicUsername,
+        lastfmUsername: trackingIdentity.accountKey,
+        trackingService: trackingIdentity.service,
+        trackingUsername: trackingIdentity.trackingUsername,
+        trackingUserId: trackingIdentity.trackingUserId,
+        displayName: trackingIdentity.displayName,
+        avatarUrl: trackingIdentity.avatarUrl,
+        lastfmProfileUrl: trackingIdentity.service === 'lastfm' ? trackingIdentity.trackingProfileUrl : null,
+        trackingProfileUrl: trackingIdentity.trackingProfileUrl,
       });
     }
 
-    // Generate session token
     const sessionToken = generateSessionToken();
     const sessionExpiresAt = getSessionExpiryDate();
 
@@ -87,20 +118,11 @@ async function handler(req, res) {
 
     await user.save();
 
-    // Set session cookie
     setSessionCookie(res, sessionToken, sessionExpiresAt);
 
     return res.status(200).json({
       success: true,
-      user: {
-        id: user._id.toString(),
-        username: user.username,
-        lastfmUsername: user.lastfmUsername,
-        lastfmProfileUrl: user.lastfmProfileUrl,
-        displayName: user.displayName,
-        avatarUrl: user.avatarUrl,
-        isAdmin: user.isAdmin,
-      },
+      user: serializeUserForClient(user),
       token: sessionToken,
     });
   } catch (error) {

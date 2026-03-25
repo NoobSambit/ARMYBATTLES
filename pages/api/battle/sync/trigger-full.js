@@ -6,6 +6,11 @@ import { createHandler, withCors, withRateLimit, withAuth } from '../../../../li
 import { logger } from '../../../../utils/logger';
 import mongoose from 'mongoose';
 import { Octokit } from '@octokit/rest';
+import {
+  getBattleVerificationUnavailableMessage,
+  getUserTrackingAccountKey,
+  userSupportsBattleVerification,
+} from '../../../../utils/tracking';
 
 function getEffectiveBattleStatus(battle) {
   if (battle.status === 'ended') return 'ended';
@@ -46,8 +51,12 @@ async function handler(req, res) {
     }
 
     const user = await User.findById(req.userId);
-    if (!user.lastfmUsername) {
-      return res.status(400).json({ error: 'Last.fm username not set' });
+    if (!getUserTrackingAccountKey(user)) {
+      return res.status(400).json({ error: 'Tracking service not connected' });
+    }
+
+    if (!userSupportsBattleVerification(user)) {
+      return res.status(400).json({ error: getBattleVerificationUnavailableMessage(user) });
     }
 
     if (!battle.participants.some(p => p.toString() === req.userId)) {
